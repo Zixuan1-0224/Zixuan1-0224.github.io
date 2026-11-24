@@ -1,0 +1,238 @@
+{
+ "_說明": "聲音點：打開探測器才聽得到(hear公尺內)；走到radius公尺內出現調頻；tune=各類型難度：h命中半寬、hold穩住秒數、amp漂移幅度、spd漂移速度；type: env日常/down降頻/odd說不清；hab＝這個聲音會出現在哪種地方（tree樹／pine松／water水邊／shop花店／cheese起司屋／bench長椅／stone石頭／bridge橋／edge小鎮邊緣／bush花叢），clue＝離很遠時提示條顯示的線索；maxR＝聲音點離小鎮中心最遠幾公尺；tune 新增 hop＝每幾秒頻率突然跳一下(0=不跳)、time＝幾秒沒調好聲音就溜走(0=不限)；教學中的第一個聲音固定很好調；spot.gate＝要先跟那位居民聊過才找得到（flower 花店老闆／house 奶奶）；tune.decoy＝1 時會有一個「假的清楚位置」，要分辨真正穩住的那個；lv＝難度 1 簡單／2 普通／3 較難（命中半寬×1.25／1／.9、穩住秒數×.85／1／1.1，lv1 不跳頻也沒有假位置）；gap＝聲音點彼此至少幾公尺；life＝聲音點存活秒數範圍，沒被收走會消失並換地方重生；relocDelay＝調頻失敗後幾秒在別處重生",
+ "seed": 1121,
+ "radius": 3.5,
+ "hear": 18,
+ "types": {
+  "env": "日常",
+  "down": "降頻",
+  "odd": "說不清"
+ },
+ "spots": [
+  {
+   "id": "s01",
+   "k": "bird",
+   "type": "env",
+   "name": "樹梢的鳥",
+   "desc": "很近的鳥叫，一聲接一聲。",
+   "hab": "tree",
+   "clue": "樹林裡有鳥叫聲",
+   "lv": 1
+  },
+  {
+   "id": "s02",
+   "k": "chime",
+   "type": "env",
+   "name": "風鈴",
+   "desc": "風一來，它就輕輕響。",
+   "hab": "shop",
+   "clue": "花店附近有叮鈴鈴的聲音",
+   "lv": 1
+  },
+  {
+   "id": "s03",
+   "k": "drop",
+   "type": "env",
+   "name": "水滴",
+   "desc": "一滴、一滴，落在很安靜的地方。",
+   "hab": "water",
+   "clue": "水邊有滴答滴答",
+   "lv": 1
+  },
+  {
+   "id": "s04",
+   "k": "clock",
+   "type": "env",
+   "name": "老時鐘",
+   "desc": "滴答聲很穩，像有人在數。",
+   "hab": "cheese",
+   "clue": "起司屋附近有老時鐘的滴答",
+   "lv": 1
+  },
+  {
+   "id": "s05",
+   "k": "frog",
+   "type": "env",
+   "name": "草叢的青蛙",
+   "desc": "咕、咕，躲在草裡。",
+   "hab": "water",
+   "clue": "水邊的草叢有咕呱聲",
+   "lv": 2
+  },
+  {
+   "id": "s06",
+   "k": "owl",
+   "type": "env",
+   "name": "貓頭鷹",
+   "desc": "低低的兩聲，像在打招呼。",
+   "hab": "pine",
+   "clue": "松樹林有低低的叫聲",
+   "lv": 2
+  },
+  {
+   "id": "s07",
+   "k": "bell",
+   "type": "env",
+   "name": "遠方的鐘",
+   "desc": "餘韻很長，慢慢散開。",
+   "hab": "edge",
+   "clue": "小鎮邊緣有遠遠的鐘聲",
+   "lv": 2
+  },
+  {
+   "id": "s08",
+   "k": "fire",
+   "type": "env",
+   "name": "小火堆",
+   "desc": "劈啪作響，聽起來很暖。",
+   "hab": "stone",
+   "clue": "石頭旁有劈啪的聲音",
+   "lv": 2
+  },
+  {
+   "id": "s09",
+   "k": "down1",
+   "type": "down",
+   "name": "高處的啾聲",
+   "desc": "原本很尖的聲音，被放慢後變得好低。",
+   "hab": "pine",
+   "clue": "松樹林上方有細細的啾聲",
+   "gate": "house",
+   "lv": 2
+  },
+  {
+   "id": "s10",
+   "k": "down2",
+   "type": "down",
+   "name": "低低的震動",
+   "desc": "一下一下，像很遠的腳步。",
+   "hab": "bridge",
+   "clue": "橋附近有低低的震動",
+   "gate": "house",
+   "lv": 2
+  },
+  {
+   "id": "s11",
+   "k": "down3",
+   "type": "down",
+   "name": "拉長的和音",
+   "desc": "幾個聲音疊在一起，慢慢飄。",
+   "hab": "bench",
+   "clue": "長椅旁有拉長的聲音",
+   "gate": "house",
+   "lv": 3
+  },
+  {
+   "id": "s12",
+   "k": "odd1",
+   "type": "odd",
+   "name": "咕嚕嚕",
+   "desc": "不知道是誰發出的，但它好像在說話。",
+   "hab": "water",
+   "clue": "水邊有咕嚕嚕的聲音",
+   "gate": "flower",
+   "lv": 3
+  },
+  {
+   "id": "s13",
+   "k": "odd2",
+   "type": "odd",
+   "name": "沙沙的掃過",
+   "desc": "一陣一陣，來了又走。",
+   "hab": "bush",
+   "clue": "花叢裡有沙沙的聲音",
+   "gate": "flower",
+   "lv": 3
+  },
+  {
+   "id": "s14",
+   "k": "down4",
+   "type": "down",
+   "name": "慢慢的鯨歌",
+   "desc": "很大很遠，像整個池塘在唱歌。",
+   "hab": "water",
+   "clue": "水邊有很長很長的歌聲",
+   "gate": "house",
+   "lv": 2
+  },
+  {
+   "id": "s15",
+   "k": "down5",
+   "type": "down",
+   "name": "放慢的雨滴",
+   "desc": "一滴要等好久，圓圓的。",
+   "hab": "tree",
+   "clue": "樹下有慢慢的滴答",
+   "gate": "house",
+   "lv": 3
+  },
+  {
+   "id": "s16",
+   "k": "odd3",
+   "type": "odd",
+   "name": "冒泡泡",
+   "desc": "不知道從哪裡冒出來，噗嚕噗嚕往上。",
+   "hab": "bench",
+   "clue": "長椅旁有噗嚕噗嚕",
+   "gate": "flower",
+   "lv": 2
+  },
+  {
+   "id": "s17",
+   "k": "odd4",
+   "type": "odd",
+   "name": "玻璃的呼吸",
+   "desc": "像有東西在吸氣、吐氣，亮亮的。",
+   "hab": "stone",
+   "clue": "石頭旁有亮亮的呼吸聲",
+   "gate": "flower",
+   "lv": 3
+  },
+  {
+   "id": "s18",
+   "k": "odd5",
+   "type": "odd",
+   "name": "爬樓梯",
+   "desc": "一階一階往上，數到哪就停了。",
+   "hab": "cheese",
+   "clue": "起司屋附近有一階一階的聲音",
+   "lv": 2
+  }
+ ],
+ "tune": {
+  "env": {
+   "h": 0.06,
+   "hold": 2.2,
+   "amp": 0.08,
+   "spd": 0.55,
+   "hop": 0,
+   "time": 40,
+   "decoy": 0
+  },
+  "down": {
+   "h": 0.05,
+   "hold": 2.8,
+   "amp": 0.12,
+   "spd": 0.8,
+   "hop": 10,
+   "time": 36,
+   "decoy": 1
+  },
+  "odd": {
+   "h": 0.042,
+   "hold": 3.2,
+   "amp": 0.16,
+   "spd": 1.0,
+   "hop": 7,
+   "time": 34,
+   "decoy": 1
+  }
+ },
+ "maxR": 85,
+ "gap": 22,
+ "life": [
+  150,
+  240
+ ],
+ "relocDelay": 10
+}

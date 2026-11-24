@@ -1,0 +1,433 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>找聲音｜居民點名版</title>
+<style>
+:root{--bg:#FFF1F6;--ink:#3A2A5C;--soft:#7A6A9A;--pink:#FF8FB8;--lilac:#A98BEA;--cream:#FFF8E8;--card:#fff}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,"Noto Sans TC",sans-serif;padding:16px 16px 40px;min-height:100vh}
+.w{max-width:520px;margin:0 auto;text-align:center}h1{font-size:22px;margin:4px 0 2px}p.cap{color:var(--soft);margin:0 0 10px}
+.stage{position:relative;width:260px;height:260px;margin:10px auto}
+.stage svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.orb{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:60px;transition:transform .15s,background .3s;box-shadow:0 6px 18px rgba(120,80,160,.15)}
+.meter{position:relative;height:18px;border-radius:9px;background:#fff;margin:6px 8px 0;overflow:hidden}.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#B9E6C9,#FF8FB8);border-radius:9px;transition:width .1s}.meter b{position:absolute;top:0;bottom:0;width:3px;background:#3A2A5C}.mlab{display:flex;justify-content:space-between;color:#7A6A9A;font-size:14px;margin:2px 10px 8px}#msg{font-size:22px;font-weight:700;min-height:34px}#sub{color:var(--soft);min-height:48px}
+.names{display:flex;gap:10px;justify-content:center;margin:8px 0}.chip{border-radius:14px;padding:8px 14px;background:#fff;font-weight:700;min-width:120px}
+.chip.m.on{background:var(--pink);color:#fff}.chip.f.on{background:var(--lilac);color:#fff}
+.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0}
+button{font:inherit;color:var(--ink);background:var(--cream);border:0;border-radius:16px;padding:12px 16px;min-height:52px;cursor:pointer;font-weight:700}
+button:disabled{opacity:.4}button.big{background:var(--lilac);color:#fff;font-size:18px;min-width:200px}
+.pocket{display:flex;gap:10px;justify-content:center;margin:8px 0}.slot{width:130px;min-height:56px;border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;padding:6px}
+.slot.e{color:var(--soft);font-weight:400;background:rgba(255,255,255,.6)}
+#stat{color:var(--soft)}#toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:16px;opacity:0;transition:opacity .3s;pointer-events:none}#toast.s{opacity:1}
+details{margin-top:16px;text-align:left;background:#fff;border-radius:14px;padding:10px 12px}summary{cursor:pointer;font-weight:700}
+#dbg{font:14px/1.6 ui-monospace,monospace;white-space:pre-wrap}select{font:inherit;padding:8px;border-radius:10px;border:0;background:var(--cream)}
+.req{background:#fff;border-radius:16px;padding:10px 12px;margin:8px 0;text-align:left;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.req .who{font-weight:700;min-width:96px}.req .want{flex:1;min-width:140px}.req.done{background:#E8F7EC}.tag{display:inline-block;background:var(--cream);border-radius:10px;padding:2px 8px;font-weight:700}
+.bk{background:#fff;border-radius:12px;padding:6px 10px;margin:4px 0;text-align:left}#heat{font-size:18px;font-weight:700;margin:6px 0}#win{display:none;background:#FFF0B8;border-radius:16px;padding:12px;margin:10px 0;font-weight:700}#full{color:var(--soft);display:none;margin:0}.slot{cursor:pointer}
+.req{display:block;text-align:center;padding:12px}.req .who{font-size:18px;min-width:0;margin-bottom:8px}.req .who b{font-size:28px;vertical-align:middle;margin-right:4px}.req .need{display:flex;gap:10px;justify-content:center}
+.nt{flex:1;max-width:150px;border-radius:16px;padding:10px 6px;background:#F1ECF7;color:#A59BB8;font-weight:700;border:2px dashed #CFC4E3}.nt i{display:block;font-style:normal;font-size:34px;filter:grayscale(1) opacity(.45);line-height:1.2}
+.nt.got{background:#FFF0B8;color:var(--ink);border:2px solid #FFD966}.nt.got i{filter:none}.req .go{margin-top:10px;width:100%}.req.done .need{opacity:.8}
+.names{gap:12px}.chip{flex:1;max-width:170px;min-width:0;padding:12px 6px;border-radius:20px;background:#fff;border:2px dashed #CFC4E3;transition:transform .2s}.chip .ic{display:block;font-size:44px;line-height:1.2;filter:blur(calc((1 - var(--p,0))*12px)) grayscale(calc(1 - var(--p,0)));opacity:calc(.35 + var(--p,0)*.65);transition:filter .2s,opacity .2s}.chip .ic.q{filter:none;color:#CFC4E3}.chip b{display:block;margin-top:2px}
+.chip.m.on{background:#FFE0EC;color:var(--ink);border:2px solid var(--pink)}.chip.f.on{background:#EDE4FF;color:var(--ink);border:2px solid var(--lilac)}.chip.pop{animation:pop .5s}@keyframes pop{0%{transform:scale(.8)}50%{transform:scale(1.2) rotate(-4deg)}100%{transform:scale(1)}}
+.slot i{font-style:normal;font-size:24px;margin-right:4px}
+.heat2{display:flex;align-items:center;gap:8px;margin:0 12px 8px;font-weight:700;color:var(--soft)}.hbar{flex:1;height:22px;border-radius:11px;background:#fff;overflow:hidden}.hbar i{display:block;height:100%;width:0;border-radius:11px;transition:width .15s,background .2s}
+#reqs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}#reqs .req{margin:0;padding:8px 4px}#reqs .who{font-size:14px;margin-bottom:6px}#reqs .who b{display:block;font-size:30px;margin:0}
+#reqs .need{flex-direction:column;gap:5px}#reqs .nt{max-width:none;padding:5px 2px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:12px}#reqs .nt i{display:inline;font-size:20px}
+#reqs .go{min-height:38px;padding:6px 4px;font-size:14px;border-radius:12px}#reqs .go:not(:disabled){background:var(--pink);color:#fff}#reqs .go:disabled{background:transparent;opacity:.6}
+#col{position:fixed;inset:0;background:var(--bg);z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}#col.s{display:flex}
+#col .big2{font-size:76px;line-height:1.1}#col h2{font-size:24px;margin:8px 0 2px}#col .cap{font-size:16px;min-height:26px}
+#tap{width:160px;height:160px;border-radius:50%;background:var(--pink);color:var(--ink);font-size:30px;margin:18px 0 6px;box-shadow:0 8px 24px rgba(255,143,184,.5);touch-action:manipulation;transition:transform .08s,box-shadow .15s}
+#tap:active{transform:scale(.92)}#tap.hear{box-shadow:0 0 0 16px rgba(255,143,184,.35)}
+.dots{font-size:26px;letter-spacing:6px;min-height:40px;color:var(--soft)}.cnt{font-size:64px;font-weight:700;color:var(--lilac);margin:14px 0 0}
+#col .row button{min-width:120px}#colI.pop{animation:pop .5s}
+.cardrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.cardrow span:first-child{font-weight:700;flex:1;min-width:120px}.cardrow button{min-height:44px;padding:6px 14px}
+.heat2{display:none}
+.steps{display:flex;gap:4px;justify-content:center;margin:2px 0 10px}.steps span{flex:1;font-size:14px;font-weight:700;padding:6px 2px;border-radius:12px;color:#A59BB8;background:rgba(255,255,255,.6);line-height:1.3}.steps span.on{background:var(--pink);color:var(--ink)}.steps span.dn{background:#EDE4FF;color:var(--ink)}
+
+/* ===== 新配色 #B7FBFF 青 / #FFF6BE 奶黃 / #FFE0A3 杏 / #FFA1AC 粉；字一律深紫，確保清楚 ===== */
+:root{--bg:#FFF6BE;--ink:#3A2A5C;--soft:#5E4F80;--pink:#FFA1AC;--lilac:#3FC9D6;--cream:#FFE0A3;--card:#fff;--cyan:#B7FBFF;--peach:#FFE0A3}
+body{font-size:17px}p.cap,#stat{color:var(--soft)}#sub{font-size:17px;color:var(--soft)}#msg{font-size:23px}
+button{background:var(--peach)}button.big{background:var(--pink);color:var(--ink)}
+.orb{box-shadow:0 6px 16px rgba(58,42,92,.14)}
+.steps span{font-size:15px;color:var(--soft);background:rgba(255,255,255,.75)}.steps span.on{background:var(--pink);color:var(--ink)}.steps span.dn{background:var(--cyan);color:var(--ink)}
+#reqs .who{font-size:15px}#reqs .nt{font-size:15px}
+.nt{background:rgba(255,255,255,.75);color:var(--soft);border:2px dashed rgba(58,42,92,.3)}.nt.got{background:var(--peach);color:var(--ink);border:2px solid #F0B64E}
+.req.done{background:var(--cyan)}#win{background:var(--peach)}
+#reqs .go:not(:disabled){background:var(--pink);color:var(--ink)}#reqs .go:disabled{background:rgba(255,255,255,.75);color:var(--soft);opacity:1}
+.chip{border:2px dashed rgba(58,42,92,.3)}.chip.m.on{background:#FFD3D8;border:2px solid var(--pink)}.chip.f.on{background:var(--cyan);border:2px solid var(--lilac)}
+.chip .ic{filter:none;transform:scale(calc(.8 + var(--p,0)*.2));opacity:calc(.3 + var(--p,0)*.7);transition:opacity .2s,transform .2s}.chip .ic.q{color:var(--soft)}
+.slot.e{color:var(--soft);background:rgba(255,255,255,.7)}
+.cnt{color:#2AA7B5}.dots{color:var(--soft)}
+#r1{stroke:var(--pink)}#r2{stroke:var(--lilac)}
+#snd{position:fixed;top:10px;right:10px;z-index:20;min-height:44px;min-width:44px;padding:6px 10px;border-radius:22px;font-size:20px;background:var(--cyan)}
+#bk{position:fixed;top:10px;left:10px;z-index:20;min-height:44px;padding:6px 14px;border-radius:22px;font-size:15px;font-weight:700;background:var(--cream,#FFF6BE);display:none}</style><style id="gameui">
+/* 與 play.html 同一套：粉圓體、柔和圓角、淡陰影、無黑框；四位居民四個色 */
+@font-face{font-family:"jf-openhuninn";src:url("fonts/jf-sub.woff2") format("woff2");font-weight:100 900;font-display:swap}
+:root{--bg:#F7F3EF;--ink:#111;--soft:rgba(17,17,17,.78);--pink:#FFB5C1;--lilac:#B7E1D1;--cream:#FFE59A;--cyan:#A9D3FF;--peach:#FFE59A;--sh:0 10px 28px rgba(17,17,17,.10);--shs:0 3px 12px rgba(17,17,17,.10)}
+body{font-family:"jf-openhuninn","PingFang TC","Microsoft JhengHei",system-ui,sans-serif!important;background-color:#F7F3EF!important;background-image:linear-gradient(rgba(17,17,17,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(17,17,17,.045) 1px,transparent 1px);background-size:24px 24px;color:#111!important}
+button,select{font-family:inherit}
+button{color:#111;background:#B7E1D1;border:0!important;border-radius:999px;box-shadow:var(--shs);letter-spacing:.04em}
+button:not(:disabled):active{transform:translateY(2px);box-shadow:none}
+button:disabled{opacity:1;color:rgba(17,17,17,.4);box-shadow:none;background:rgba(255,255,255,.75)}
+button.big,#reqs .go:not(:disabled){background:#FFB5C1!important;color:#111!important}
+#snd,#bk{background:#fff;min-height:44px;box-shadow:var(--shs)}
+#toast{background:#111;color:#fff;border:0;box-shadow:var(--sh)}
+.req,.bk,details,.pocket .slot,.chip,#win{border:0!important;box-shadow:var(--sh);border-radius:24px}
+.req{background:#fff}.req.l-flower{background:#FFE6EB}.req.l-house{background:#F5E8FC}.req.l-market{background:#FFF4CF}.req.l-river{background:#E1EFFF}
+.req.done{background:#E3F3EC!important}.req.done .who{opacity:.85}
+.nt{border:2px dashed rgba(17,17,17,.25)!important;box-shadow:none;color:rgba(17,17,17,.7);border-radius:16px}.nt.got{background:#FFE59A!important;border:0!important;color:#111}
+.steps span{border:0;color:rgba(17,17,17,.7);background:#fff;box-shadow:var(--shs)}.steps span.on{background:#FFB5C1;color:#111}.steps span.dn{background:#B7E1D1;color:#111}
+.chip.m.on{background:#FFB5C1!important}.chip.f.on{background:#A9D3FF!important}
+.slot.e{background:rgba(255,255,255,.7)}
+#win{background:#FFE59A}
+.meter{border:0;background:#fff;box-shadow:var(--shs)}
+#col{background:#F7F3EF}
+.orb{border:0;box-shadow:var(--sh)}
+.w{padding-top:56px}
+#reqs{grid-template-columns:repeat(2,1fr)!important;gap:12px!important}
+#reqs .req{padding:12px 8px!important}#reqs .who{font-size:16px!important}#reqs .who b{font-size:30px!important}
+#reqs .nt{font-size:16px!important;padding:6px 4px!important}
+#reqs .go{min-height:44px!important;font-size:16px!important}
+.steps span{font-size:15px}
+#dbgd{display:none}body.dbg #dbgd{display:block}
+/* 內嵌在主遊戲時：不要像測試頁——不顯示標題說明，只留遊戲畫面 */
+/* ===== 內嵌在主遊戲時：照 play.html 的版面（頂欄＋白色大卡＋粉色主按鈕），不是測試頁 ===== */
+#tbar{position:fixed;top:10px;right:10px;z-index:20;display:flex;align-items:center;gap:8px}
+#tbar #snd,#tbar #bk{position:static!important}
+#tbar #ttl,#tbar #tchip{display:none}
+body.emb{padding:0}
+body.emb .w{max-width:520px;padding:76px 16px 40px}
+body.emb #tbar{left:0;right:0;top:0;padding:10px 14px;background:#F7F3EF;box-shadow:0 2px 12px rgba(17,17,17,.06)}
+body.emb #tbar #ttl{display:block;flex:1;font-size:20px;font-weight:700;text-align:center}
+body.emb #tbar #tchip{display:block;background:#fff;border-radius:999px;padding:8px 14px;font-weight:700;font-size:16px;box-shadow:var(--shs)}
+body.emb #bk,body.emb #snd{min-height:44px;padding:0 14px;font-size:16px}
+body.emb h1,body.emb .steps,body.emb #heat,body.emb .heat2,body.emb .w>p.cap{display:none}
+body.emb .lcard{background:#fff;border-radius:28px;padding:16px 14px 18px;box-shadow:var(--sh);margin-bottom:12px;text-align:center}
+body.emb .lcard h2{font-size:22px;margin:6px 0 10px}
+body.emb .how{list-style:none;padding:0;margin:0 0 4px;text-align:left;display:grid;gap:10px}
+body.emb .how li{display:flex;gap:12px;align-items:center;font-size:17px;line-height:1.4}
+body.emb .how .hn{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:#FFB5C1}
+body.emb .how li:nth-child(2) .hn{background:#E7BEF8}body.emb .how li:nth-child(3) .hn{background:#A9D3FF}
+body.emb #start{margin-top:0;text-align:center}
+body.emb #start .row{margin-top:14px}
+body.emb #start .lcard{display:none}body.emb #start .big{width:100%;min-width:0;min-height:60px;font-size:20px}
+#rbar{display:none}body.emb #rbar{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:0 14px;margin:0 0 8px;border:0;border-radius:14px;background:#fff;color:#111;font:inherit;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.08)}body.emb #rbar svg{transition:transform .2s}body.emb.rc #rbar svg{transform:rotate(180deg)}body.emb.rc #reqs{display:none!important}body.emb #reqs .nt.lk{opacity:.45}body.emb #reqs{grid-template-columns:repeat(4,1fr)!important;gap:8px!important;margin:0 0 12px}
+body.emb #reqs .req{padding:14px 4px 8px!important;text-align:center;display:block}
+body.emb #reqs .who{font-size:14px!important;margin:0 0 6px!important;min-width:0;line-height:1.3}
+body.emb #reqs .who b{display:block;font-size:30px!important;line-height:1.1}
+body.emb #reqs .who .st{display:block;font-size:14px;color:rgba(17,17,17,.7)}
+body.emb #reqs .need{display:flex;flex-direction:row!important;justify-content:center;gap:6px!important}
+body.emb #reqs .nt{flex:0 0 auto;width:34px;height:34px;padding:0!important;border-radius:50%!important;display:grid;place-items:center;font-size:0!important}
+body.emb #reqs .nt i{font-size:20px;margin:0}body.emb #reqs .nt em{display:none}
+body.emb #reqs .go{display:none!important}body.emb #reqs .go.__x{min-height:40px!important;font-size:14px!important;margin-top:8px;width:100%;padding:0 2px}
+body.emb .stage{width:190px;height:190px;margin:0 auto 4px}
+body.emb .orb{width:110px;height:110px;margin:-55px 0 0 -55px;font-size:56px}
+body.emb #msg{font-size:22px}body.emb #sub{font-size:16px;min-height:24px}
+body.emb .duo{display:flex;gap:10px;margin-top:10px}
+body.emb .duo .col{flex:1;display:grid;gap:8px}
+body.emb .duo small{font-size:14px;color:rgba(17,17,17,.7)}
+body.emb .duo .chip{min-width:0;max-width:none;padding:10px 4px}
+body.emb .duo button{min-height:52px;font-size:17px;background:#FFB5C1}
+body.emb .duo button:disabled{background:#F1ECE7;color:rgba(17,17,17,.4)}
+body.emb .pk{background:#fff;border-radius:24px;padding:12px;box-shadow:var(--sh)}
+body.emb .pk .lab{font-size:14px;color:rgba(17,17,17,.7);margin-bottom:6px;text-align:left}
+body.emb .pk .row{margin:8px 0 0}body.emb .pk #road{width:100%;min-height:48px;font-size:17px}
+body.emb #full{font-size:14px}
+/* ===== 幾何圖標（全部 SVG，不用 emoji） ===== */
+.gi{width:32px;height:32px;display:block}
+.nt i{display:inline-grid;place-items:center;font-style:normal}.nt .gi{width:22px;height:22px}
+.chip .ic .gi{width:44px;height:44px;margin:0 auto}
+.chip .ic{filter:none!important}
+.slot i{display:inline-block;vertical-align:middle;margin-right:6px}.slot .gi{width:22px;height:22px;display:inline-block;vertical-align:middle}
+.av{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;margin:0 auto 4px;background:var(--c,#fff)}.av svg{width:28px;height:28px}
+.req.l-flower{--c:#FFB5C1}.req.l-house{--c:#E7BEF8}.req.l-market{--c:#FFE59A}.req.l-river{--c:#A9D3FF}
+#orb svg{display:block;position:static!important;transform:none!important;width:64px!important;height:54px!important;inset:auto!important}
+.nt:not(.got) .gi{opacity:.6}
+#snd .gi,#bk .gi{width:20px;height:20px}#snd{display:inline-grid;place-items:center}
+body.emb #reqs .who b{font-size:0!important;display:grid!important}
+body.emb #reqs .req:not(.done):not(.lock) .st{display:none}body.emb #reqs .req.lock .st{display:block;font-size:13px}body.emb #reqs .req.lock{opacity:.8}
+body.emb #reqs .req{min-height:132px}
+/* ===== 精簡：聽清楚的聲音卡可直接點選收下 ===== */
+body.emb .duo{margin-top:6px}
+body.emb .duo .chip{cursor:default;min-height:92px;display:grid;place-items:center;align-content:center;gap:2px}
+body.emb .duo .chip.rdy{background:#FFB5C1!important;box-shadow:0 6px 0 #E9919F;cursor:pointer;animation:rdy 1.2s ease-in-out infinite}
+@keyframes rdy{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+body.emb .pk{display:flex;align-items:center;gap:8px;padding:10px}
+body.emb .pk .pocket{display:flex;gap:8px;margin:0;flex:1}
+body.emb .pk .slot{flex:1;min-height:48px;border-radius:16px;font-size:15px}
+body.emb .pk #road{flex:none;width:auto;min-height:48px;padding:0 16px;font-size:16px}
+body.emb .pk{flex-wrap:wrap}body.emb .pk .pocket{flex:1 1 100%}body.emb .pk #road{flex:1 1 100%;width:100%}
+body.emb details,body.emb #book{display:none!important}
+body.emb #sub{min-height:0}
+</style>
+</head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="i-lamp" viewBox="0 0 40 40"><circle cx="20" cy="15" r="10" fill="#fff"/><path d="M20 27v8M14 36h12" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M16 14a4.5 4.5 0 0 1 4-4" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" fill="none"/></symbol><symbol id="i-door" viewBox="0 0 40 40"><path d="M9 37V19a11 11 0 0 1 22 0v18z" fill="#fff"/><path d="M15 37V20a5 5 0 0 1 10 0v17" stroke="var(--ink)" stroke-width="2.6" stroke-linecap="round" fill="none"/><circle cx="22.5" cy="29" r="1.8" fill="var(--ink)"/></symbol><symbol id="i-bell" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="#fff"/><path d="M20 10v10l6 4" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol><symbol id="i-water" viewBox="0 0 40 40"><path d="M20 4C27 14 31 20 31 26a11 11 0 0 1-22 0c0-6 4-12 11-22z" fill="#fff"/><path d="M14 27q2.5 4 6 3" stroke="var(--ink)" stroke-width="2.6" stroke-linecap="round" fill="none"/></symbol><symbol id="i-ping" viewBox="0 0 48 40"><ellipse cx="8" cy="24" rx="7.200" ry="12" transform="rotate(8 8 24)" fill="#F0A6BA"/><ellipse cx="40" cy="24" rx="7.200" ry="12" transform="rotate(-8 40 24)" fill="#F0A6BA"/><path d="M24 12c10 0 13 5 13 12s-3 12-13 12-13-5-13-12 3-12 13-12z" fill="#F8C3D0"/><circle cx="19.500" cy="22" r="3.200" fill="#EA4B5A"/><ellipse cx="19.500" cy="22" rx="1.800" ry="1.400" fill="#fff"/><circle cx="28.500" cy="22" r="3.200" fill="#EA4B5A"/><ellipse cx="28.500" cy="22" rx="1.800" ry="1.400" fill="#fff"/><path d="M22.800 21.200l2.400 2.200M25.200 21.200l-2.400 2.200" stroke="#EA4B5A" stroke-width="1.100" stroke-linecap="round"/><circle cx="21.200" cy="17.600" r=".9" fill="#7CCCE0"/><circle cx="26.800" cy="17.600" r=".9" fill="#7CCCE0"/><ellipse cx="24" cy="10.400" rx="9" ry="4.800" fill="#E53E2E"/><rect x="15.500" y="11.800" width="17" height="3.200" rx="1.600" fill="#F3F0EC"/><circle cx="24" cy="5.200" r="1.800" fill="#E8E4E0"/></symbol></defs></svg><div id="tbar"><button id="bk"><svg class="gi" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M15 5l-7 7 7 7"/></svg>回小鎮</button><span id="ttl">收聲音</span><span id="tchip">剩 --:--</span><button id="snd" aria-label="音效開關"></button></div><div class="w">
+<h1>居民想聽的聲音</h1><p class="cap">居民各想聽 2 個聲音。走去找花、聽清楚，收下後種給居民。</p>
+<div id="start"><div class="lcard"><div class="av" style="width:72px;height:72px;margin:0 auto 8px;background:#FFB5C1"><svg viewBox="0 0 48 40" width="52" height="44"><use href="#i-ping"/></svg></div><h2>走到會唱歌的花旁邊</h2><p class="cap" style="margin:0">停住不動，聽清楚就收下</p></div><div class="row"><button class="big" id="go">開始聽</button></div><p class="cap" id="err"></p></div>
+<div id="play" style="display:none">
+<div class="steps" id="steps"></div><div id="heat"></div><button id="rbar" type="button"><span id="rbt"></span><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div id="reqs"></div><div id="win">小鎮好熱鬧！四位居民都聽到想聽的聲音了。<div class="row"><button id="again">再玩一輪</button></div></div>
+<div class="lcard"><div class="stage"><svg viewBox="0 0 260 260"><circle cx="130" cy="130" r="122" fill="none" stroke="#fff" stroke-width="12"/><circle id="r1" cx="130" cy="130" r="122" fill="none" stroke="#FF8FB8" stroke-width="12" stroke-linecap="round" stroke-dasharray="766.5" stroke-dashoffset="766.5"/><circle cx="130" cy="130" r="104" fill="none" stroke="#fff" stroke-width="10"/><circle id="r2" cx="130" cy="130" r="104" fill="none" stroke="#A98BEA" stroke-width="10" stroke-linecap="round" stroke-dasharray="653.4" stroke-dashoffset="653.4"/></svg><div class="orb" id="orb"></div></div>
+<div class="heat2"><span>冷</span><div class="hbar"><i id="hf"></i></div><span>熱</span></div>
+<div id="msg">量一下周圍…</div><div id="sub"></div>
+<div class="duo"><div class="col"><div class="chip m" id="cm">還沒聽清楚</div></div><div class="col"><div class="chip f" id="cf">還沒聽清楚</div></div></div><p id="full">口袋滿了：點口袋裡的聲音可以放掉</p></div>
+<div class="pk"><div class="pocket"><div class="slot e" id="s0">空</div><div class="slot e" id="s1">空</div></div><button id="road" disabled>種在路邊</button></div>
+<details open style="display:none"><summary>我的聲音卡（錄音只存在這支手機）</summary><div id="cards"></div></details>
+<details><summary>聽過的花</summary><div id="book"></div></details>
+<details id="dbgd"><summary>調校數字（測試用）</summary><div class="meter"><i id="mf"></i><b id="mt"></b></div><div class="mlab"><span>安靜</span><span>花的聲音</span></div>
+<div class="meter"><i id="mf2"></i><b id="mt2"></b></div><div class="mlab"><span>不像花</span><span>像花</span></div>
+<div id="dbg"></div><span id="sthr" style="display:none"></span><span id="sthv" style="display:none"></span><p class="cap">靠近門檻 <input type="range" id="thr" min="2" max="15" value="4"> <span id="thv">4</span> dB</p></details>
+</div></div>
+<div id="col"><div class="big2" id="colI">🌸</div><h2 id="colT"></h2><p class="cap" id="colS"></p><div id="colB"></div><div class="row" id="colR"></div></div>
+<div id="toast"></div>
+<script>
+(function(){
+var AC,out,noiseB,S5=[0,2,4,7,9];
+function f5(base,deg){return base*Math.pow(2,(S5[deg%5]+12*Math.floor(deg/5))/12)}
+function R(a,b){return a+Math.random()*(b-a)}
+function env(t,vol,att,dur){var g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(vol,t+att);g.gain.exponentialRampToValueAtTime(.0001,t+dur);return g}
+function pan(g,p){var n=AC.createStereoPanner?AC.createStereoPanner():null;if(n){n.pan.value=p;g.connect(n);n.connect(out)}else g.connect(out)}
+// 風鈴：金屬棒的非整數倍泛音，長長的餘韻
+function chime(t){var f=f5(1046.5,(Math.random()*5)|0),p=R(-.6,.6);[[1,1,2.6],[2.76,.5,1.6],[5.4,.25,.9],[8.93,.12,.5]].forEach(function(x){var o=AC.createOscillator(),g=env(t,.07*x[1],.004,x[2]);o.frequency.value=f*x[0];o.connect(g);pan(g,p);o.start(t);o.stop(t+x[2]+.1)})}
+// 水滴：很快往上滑的短音
+function drop(t){var f=f5(700,(Math.random()*5)|0),p=R(-.7,.7),o=AC.createOscillator(),g=env(t,.12,.003,.16);o.frequency.setValueAtTime(f*.8,t);o.frequency.exponentialRampToValueAtTime(f*1.5,t+.07);o.connect(g);pan(g,p);o.start(t);o.stop(t+.2);if(Math.random()<.4){var o2=AC.createOscillator(),g2=env(t+.12,.04,.003,.12);o2.frequency.setValueAtTime(f*.8,t+.12);o2.frequency.exponentialRampToValueAtTime(f*1.5,t+.19);o2.connect(g2);pan(g2,p);o2.start(t+.12);o2.stop(t+.3)}}
+// 鳥叫：幾聲快速的頻率掃動，帶一點抖音
+function bird(t){var p=R(-.7,.7),n=2+((Math.random()*4)|0),f=R(2600,3800),k;for(k=0;k<n;k++){var s=t+k*R(.09,.14),o=AC.createOscillator(),l=AC.createOscillator(),lg=AC.createGain(),g=env(s,.06,.012,.1);o.frequency.setValueAtTime(f,s);o.frequency.exponentialRampToValueAtTime(f*R(1.15,1.5),s+.08);l.frequency.value=R(30,50);lg.gain.value=80;l.connect(lg);lg.connect(o.frequency);o.connect(g);pan(g,p);o.start(s);o.stop(s+.14);l.start(s);l.stop(s+.14);f*=R(.92,1.08)}}
+// 時鐘：滴、答兩種音色
+var ctick=0;function clock(t){var s=AC.createBufferSource(),b=AC.createBiquadFilter(),g=env(t,.5,.001,.03);b.type='bandpass';b.frequency.value=(ctick++%2)?1900:2500;b.Q.value=4;s.buffer=noiseB;s.connect(b);b.connect(g);pan(g,0);s.start(t,Math.random(),.05)}
+// 氣泡：低一點、慢一點的往上滑
+function bubble(t){var f=R(220,420),p=R(-.5,.5),o=AC.createOscillator(),g=env(t,.14,.004,.12);o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*2.2,t+.09);o.connect(g);pan(g,p);o.start(t);o.stop(t+.2)}
+// 風：慢慢變化的濾波雜訊
+var windNode=null;function windStart(){var s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=noiseB;s.loop=true;f.type='bandpass';f.frequency.value=500;f.Q.value=.8;g.gain.value=.0;s.connect(f);f.connect(g);g.connect(out);s.start();windNode={s:s,f:f,g:g,iv:setInterval(function(){var t=AC.currentTime;f.frequency.setTargetAtTime(R(250,1100),t,1.2);g.gain.setTargetAtTime(R(.04,.16),t,1.4)},1800)};g.gain.value=.08}
+function windStop(){if(!windNode)return;clearInterval(windNode.iv);windNode.g.gain.setTargetAtTime(0,AC.currentTime,.2);var w=windNode;setTimeout(function(){w.s.stop()},800);windNode=null}
+// 新增 10 組聲音
+function noiseSrc(t,dur,ft,fq,q,vol,p,att){var s=AC.createBufferSource(),b=AC.createBiquadFilter(),g=env(t,vol,att||.001,dur);b.type=ft;b.frequency.value=fq;b.Q.value=q;s.buffer=noiseB;s.connect(b);b.connect(g);pan(g,p||0);s.start(t,Math.random(),dur+.05)}
+// 雨：持續的高頻雜訊＋隨機小水珠
+function rainStart(){var s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=noiseB;s.loop=true;f.type='bandpass';f.frequency.value=5200;f.Q.value=.4;g.gain.value=.1;s.connect(f);f.connect(g);g.connect(out);s.start();var iv=setInterval(function(){noiseSrc(AC.currentTime+.02,.03,'bandpass',R(4000,8000),3,.12,R(-.8,.8))},70);return function(){clearInterval(iv);g.gain.setTargetAtTime(0,AC.currentTime,.2);setTimeout(function(){s.stop()},800)}}
+// 海浪：低頻雜訊，音量隨慢速波浪起伏
+function seaStart(){var s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain();s.buffer=noiseB;s.loop=true;f.type='lowpass';f.frequency.value=700;g.gain.value=.11;l.frequency.value=.13;lg.gain.value=.09;l.connect(lg);lg.connect(g.gain);s.connect(f);f.connect(g);g.connect(out);s.start();l.start();return function(){g.gain.setTargetAtTime(0,AC.currentTime,.2);setTimeout(function(){s.stop();l.stop()},800)}}
+// 蟲鳴：一串很快的高頻短音
+function cricket(t){var p=R(-.8,.8),f=R(4200,5000),k;for(k=0;k<4;k++){var s=t+k*.07,o=AC.createOscillator(),g=env(s,.05,.006,.04);o.frequency.value=f;o.connect(g);pan(g,p);o.start(s);o.stop(s+.06)}}
+// 青蛙：低頻方波＋快速顫動
+function frog(t){var p=R(-.7,.7),n=1+((Math.random()*2)|0),k;for(k=0;k<n;k++){var s=t+k*.2,o=AC.createOscillator(),f=AC.createBiquadFilter(),l=AC.createOscillator(),lg=AC.createGain(),g=env(s,.12,.01,.16);o.type='square';o.frequency.setValueAtTime(R(150,190),s);o.frequency.exponentialRampToValueAtTime(95,s+.15);f.type='lowpass';f.frequency.value=800;l.frequency.value=48;lg.gain.value=40;l.connect(lg);lg.connect(o.frequency);o.connect(f);f.connect(g);pan(g,p);o.start(s);o.stop(s+.2);l.start(s);l.stop(s+.2)}}
+// 木魚：短短的「叩」，音高落在五聲音階
+function wood(t){var f=f5(520,(Math.random()*5)|0),o=AC.createOscillator(),g=env(t,.2,.001,.14);o.frequency.setValueAtTime(f*1.25,t);o.frequency.exponentialRampToValueAtTime(f,t+.03);o.connect(g);pan(g,R(-.4,.4));o.start(t);o.stop(t+.18);noiseSrc(t,.02,'bandpass',2200,2,.12)}
+// 腳踏車鈴：高頻非整數倍泛音，叮鈴叮鈴
+function bike(t){var k,n=2+((Math.random()*2)|0);for(k=0;k<n;k++){var s=t+k*.14;[[3150,1],[4760,.6],[7800,.25]].forEach(function(x){var o=AC.createOscillator(),g=env(s,.05*x[1],.002,.5);o.frequency.value=x[0];o.connect(g);pan(g,.2);o.start(s);o.stop(s+.6)})}}
+// 鐘聲：低沉的鐘，多個泛音、很長的餘韻
+function bell(t){var f=f5(196,(Math.random()*5)|0),p=R(-.3,.3);[[.5,1,4],[1,1,3.5],[1.19,.6,3],[1.56,.4,2.4],[2,.5,2.2],[2.51,.25,1.6],[3.2,.15,1.2]].forEach(function(x){var o=AC.createOscillator(),g=env(t,.07*x[1],.004,x[2]);o.frequency.value=f*x[0];o.connect(g);pan(g,p);o.start(t);o.stop(t+x[2]+.1)})}
+// 火堆：不規則的短雜訊爆裂
+function fire(t){var n=2+((Math.random()*4)|0),k;for(k=0;k<n;k++)noiseSrc(t+k*R(.02,.12),R(.01,.04),'highpass',R(1500,4500),.7,R(.1,.35),R(-.5,.5))}
+// 貓頭鷹：兩聲低低的「咕～咕」
+function owl(t){var p=R(-.5,.5),k;for(k=0;k<2;k++){var s=t+k*.55,o=AC.createOscillator(),g=env(s,.14,.12,.4);o.frequency.setValueAtTime(R(380,430),s);o.frequency.exponentialRampToValueAtTime(330,s+.4);o.connect(g);pan(g,p);o.start(s);o.stop(s+.45)}}
+// 小雞：很短很高的啾啾
+function chick(t){var p=R(-.7,.7),n=2+((Math.random()*3)|0),k;for(k=0;k<n;k++){var s=t+k*.12,o=AC.createOscillator(),g=env(s,.07,.005,.07);o.frequency.setValueAtTime(R(3000,3600),s);o.frequency.exponentialRampToValueAtTime(R(4200,5000),s+.05);o.connect(g);pan(g,p);o.start(s);o.stop(s+.09)}}
+
+function frog(t){var p=R(-.7,.7),n=2+((Math.random()*2)|0),k,base=R(270,350);for(k=0;k<n;k++){var last=(k==n-1),d=last?.2:.11,s=t+k*R(.17,.22),o=AC.createOscillator(),f1=AC.createBiquadFilter(),f2=AC.createBiquadFilter(),g2=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain(),m=AC.createGain(),g=env(s,.17,.01,d+.05);o.type='sawtooth';o.frequency.setValueAtTime(base*.8,s);o.frequency.exponentialRampToValueAtTime(base*(last?1.35:1.15),s+d*.55);o.frequency.exponentialRampToValueAtTime(base*.95,s+d);f1.type='bandpass';f1.frequency.value=850;f1.Q.value=4;f2.type='bandpass';f2.frequency.value=2300;f2.Q.value=5;g2.gain.value=.45;l.frequency.value=R(48,66);lg.gain.value=.5;m.gain.value=.5;l.connect(lg);lg.connect(m.gain);o.connect(f1);o.connect(f2);f1.connect(m);f2.connect(g2);g2.connect(m);m.connect(g);pan(g,p);o.start(s);o.stop(s+d+.06);l.start(s);l.stop(s+d+.06);base*=R(.96,1.04)}}
+function owl(t){var p=R(-.5,.5),k,n=2+((Math.random()*2)|0),f=R(360,440);for(k=0;k<n;k++){var s=t+k*(k==0?.0:.5),o=AC.createOscillator(),v=AC.createOscillator(),vg=AC.createGain(),g=env(s,.1,.14,.42);o.frequency.setValueAtTime(f*(k?.93:1),s);o.frequency.exponentialRampToValueAtTime(f*(k?.8:.88),s+.4);v.frequency.value=5;vg.gain.value=6;v.connect(vg);vg.connect(o.frequency);o.connect(g);pan(g,p);o.start(s);o.stop(s+.45);v.start(s);v.stop(s+.45);noiseSrc(s,.35,'bandpass',f*2,2,.015,p,.1)}}
+
+function windCont(){var s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=noiseB;s.loop=true;f.type='bandpass';f.frequency.value=500;f.Q.value=.8;g.gain.value=.08;s.connect(f);f.connect(g);g.connect(out);s.start();var iv=setInterval(function(){var t=AC.currentTime;f.frequency.setTargetAtTime(R(250,1100),t,1.2);g.gain.setTargetAtTime(R(.04,.16),t,1.4)},1800);return function(){clearInterval(iv);g.gain.setTargetAtTime(0,AC.currentTime,.2);setTimeout(function(){s.stop()},800)}}
+var SND={chime:{n:'風鈴',e:'🎐',fn:chime,gap:function(){return R(.8,2.4)}},drop:{n:'水滴',e:'💧',fn:drop,gap:function(){return R(.6,1.6)}},bird:{n:'鳥叫',e:'🐦',fn:bird,gap:function(){return R(1.2,3)}},clock:{n:'時鐘',e:'⏰',fn:clock,gap:function(){return .65}},cricket:{n:'蟲鳴',e:'🦗',fn:cricket,gap:function(){return R(.6,1.6)}},frog:{n:'青蛙',e:'🐸',fn:frog,gap:function(){return R(1.4,3)}},fire:{n:'火堆',e:'🔥',fn:fire,gap:function(){return R(.2,.7)}},owl:{n:'貓頭鷹',e:'🦉',fn:owl,gap:function(){return R(2.5,5)}},chick:{n:'小雞',e:'🐤',fn:chick,gap:function(){return R(1,2.2)}},bell:{n:'鐘聲',e:'🔔',fn:bell,gap:function(){return R(3,6)}},wind:{n:'風',e:'🍃',cont:windCont},rain:{n:'雨',e:'🌧️',cont:rainStart},sea:{n:'海浪',e:'🌊',cont:seaStart}};
+function fft(re,im){var n=re.length,i,j=0,k,t;for(i=1;i<n;i++){var bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t}}
+ for(var len=2;len<=n;len<<=1){var ang=-2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);for(i=0;i<n;i+=len){var cr=1,ci=0;for(k=0;k<len/2;k++){var ur=re[i+k],ui=im[i+k],vr=re[i+k+len/2]*cr-im[i+k+len/2]*ci,vi=re[i+k+len/2]*ci+im[i+k+len/2]*cr;re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;var nr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=nr}}}}
+window.buildTemplate=async function(kM,kF,nb,lo,hi){
+ var sr=44100,dur=8,OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;AC=new OAC(1,sr*dur,sr);
+ var n=sr*2;noiseB=AC.createBuffer(1,n,sr);var a=noiseB.getChannelData(0);for(var i=0;i<n;i++)a[i]=Math.random()*2-1;
+ var master=AC.createGain();master.connect(AC.destination);var gF=AC.createGain();gF.gain.value=.5;gF.connect(master);
+ [[kM,master],[kF,gF]].forEach(function(pr){if(!pr[0])return;var s=SND[pr[0]];out=pr[1];if(s.cont){try{s.cont()}catch(e){}}else{for(var t=.1;t<dur-.6;t+=Math.max(.3,s.gap()))try{s.fn(t)}catch(e){}}});
+ var buf=await AC.startRendering();window.__lastBuf=buf.getChannelData(0);
+ var d=buf.getChannelData(0),N=2048,bw=sr/N,acc=new Array(nb).fill(0),en=[],fr=[],mx=0;
+ for(var p=0;p+N<=d.length;p+=1024){var re=new Float64Array(N),im=new Float64Array(N),e=0;for(var q=0;q<N;q++){var w=.5-.5*Math.cos(2*Math.PI*q/N);re[q]=d[p+q]*w;e+=d[p+q]*d[p+q]}en.push(e);fr.push([re,im]);if(e>mx)mx=e}
+ var used=0;for(var f=0;f<fr.length;f++){if(en[f]<mx*.1)continue;fft(fr[f][0],fr[f][1]);used++;for(var k=1;k<N/2;k++){var fq=k*bw;if(fq<lo||fq>=hi)continue;var b=Math.floor(Math.log(fq/lo)/Math.log(hi/lo)*nb);if(b>=nb)b=nb-1;acc[b]+=fr[f][0][k]*fr[f][0][k]+fr[f][1][k]*fr[f][1][k]}}
+ if(!used)return null;var sum=0;acc.forEach(function(v){sum+=v});return sum>0?acc.map(function(v){return v/sum}):null};
+})();
+</script>
+<script>
+(function(){
+function $(i){return document.getElementById(i)}function clamp(x){return Math.max(0,Math.min(1,x))}
+var SN={bird:'鳥叫',chime:'風鈴',clock:'時鐘',chick:'小雞',rain:'雨',drop:'水滴',frog:'青蛙',cricket:'蟲鳴',fire:'火堆',owl:'貓頭鷹',sea:'海浪',wind:'風',bell:'鐘聲'};
+var ENV={morning:{e:'☀️',pairs:[['bird','chime'],['clock','bell']]},rain:{e:'💧',pairs:[['rain','drop']]},night:{e:'🌙',pairs:[['frog','cricket'],['owl','fire']]},sea:{e:'🐚',pairs:[['sea','wind']]}};
+function G(x){return '<svg class="gi" viewBox="0 0 32 32" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+x+'</svg>'}
+var PING='<svg viewBox="0 0 48 40" width="64" height="54"><use href="#i-ping"/></svg>',QI='<svg class="gi" viewBox="0 0 32 32" fill="none" stroke="rgba(17,17,17,.35)" stroke-width="2.5" stroke-dasharray="3 5" stroke-linecap="round"><circle cx="16" cy="16" r="11"/></svg>';
+var SI={
+bird:G('<circle cx="15" cy="17" r="9" fill="#A9D3FF"/><path d="M24 15l6 2-6 3z" fill="#FFB5C1"/><circle cx="18.500" cy="14.500" r="1.400" fill="#111" stroke="none"/><path d="M8 18q4 5 9 1" />'),
+chime:G('<path d="M5 6h22"/><path d="M9 6v6M16 6v8M23 6v5"/><rect x="6.500" y="12" width="5" height="12" rx="2.500" fill="#B7E1D1"/><rect x="13.500" y="14" width="5" height="14" rx="2.500" fill="#A9D3FF"/><rect x="20.500" y="11" width="5" height="10" rx="2.500" fill="#FFB5C1"/>'),
+clock:G('<circle cx="16" cy="16" r="11" fill="#FFF4CF"/><path d="M16 9v7l5 3"/>'),
+chick:G('<circle cx="16" cy="17" r="10" fill="#FFE59A"/><path d="M14 8q2-4 4 0"/><circle cx="12.500" cy="16" r="1.300" fill="#111" stroke="none"/><circle cx="19.500" cy="16" r="1.300" fill="#111" stroke="none"/><path d="M14.500 20h3l-1.500 2.500z" fill="#FFB5C1"/>'),
+rain:G('<path d="M9 17a5 5 0 0 1 1-9.800A6 6 0 0 1 21.500 7.500 4.500 4.500 0 0 1 22 17z" fill="#E1EFFF"/><path d="M11 21l-2 5M17 21l-2 5M23 21l-2 5" stroke="#4A90D9"/>'),
+drop:G('<path d="M16 4C22 12 26 17 26 21a10 10 0 0 1-20 0c0-4 4-9 10-17z" fill="#A9D3FF"/><path d="M11 21q1.500 4 5 4"/>'),
+frog:G('<circle cx="16" cy="19" r="11" fill="#B7E1D1"/><circle cx="10.500" cy="9.500" r="4.500" fill="#fff"/><circle cx="21.500" cy="9.500" r="4.500" fill="#fff"/><circle cx="10.500" cy="10" r="1.500" fill="#111" stroke="none"/><circle cx="21.500" cy="10" r="1.500" fill="#111" stroke="none"/><path d="M10 22q6 4 12 0"/>'),
+cricket:G('<ellipse cx="16" cy="18" rx="10" ry="5.500" fill="#E7BEF8" transform="rotate(-20 16 18)"/><path d="M20 12l5-7M23 14l6-4M10 22l-3 6M15 24l-1 5"/><circle cx="23.500" cy="14" r="1.200" fill="#111" stroke="none"/>'),
+fire:G('<path d="M16 3C18 9 25 12 25 20a9 9 0 0 1-18 0c0-5 3-7 5-10 1 2 2 3 4 3 0-4-1-6 0-10z" fill="#FFB5C1"/><path d="M16 17c2 2 4 3 4 6a4 4 0 0 1-8 0c0-2 2-3 4-6z" fill="#FFE59A"/>'),
+owl:G('<path d="M6 8l5 3h10l5-3v14a10 10 0 0 1-20 0z" fill="#E7BEF8"/><circle cx="12" cy="16" r="4" fill="#fff"/><circle cx="20" cy="16" r="4" fill="#fff"/><circle cx="12" cy="16" r="1.400" fill="#111" stroke="none"/><circle cx="20" cy="16" r="1.400" fill="#111" stroke="none"/><path d="M14.500 21h3l-1.500 3z" fill="#FFE59A"/>'),
+sea:G('<path d="M3 17q3.500-5 7 0t7 0 7 0 5 0V28H3z" fill="#A9D3FF"/><path d="M3 11q3.500-5 7 0t7 0 7 0 5 0"/>'),
+wind:G('<path d="M4 11h15a3.500 3.500 0 1 0-3.500-3.500"/><path d="M4 17h21a3.500 3.500 0 1 1-3.500 3.500"/><path d="M4 23h10"/>'),
+bell:G('<path d="M7 23s3-2 3-9a6 6 0 0 1 12 0c0 7 3 9 3 9z" fill="#FFE59A"/><path d="M13 27a3 3 0 0 0 6 0"/><path d="M16 5V8"/>')};
+var PK=[];Object.keys(ENV).forEach(function(e){ENV[e].pairs.forEach(function(pr,i){PK.push({k:e+':'+i,e:e,i:i,m:pr[0],f:pr[1]})})});
+function pkOf(k){for(var i=0;i<PK.length;i++)if(PK[i].k==k)return PK[i]}
+var RES=[{id:'flower',n:'花店老闆',ic:'lamp'},{id:'house',n:'奶奶',ic:'door'},{id:'market',n:'市場阿姨',ic:'bell'},{id:'river',n:'釣魚大叔',ic:'water'}],QP=new URLSearchParams(location.search),EMBED=QP.get('embed')=='1';
+var AC,an,an2,spec,tpls={},sims={},bh=[],fr=[],sm=null,isNear=false,curKey=null,hold=0,lastNear=0,still=true,hasMotion=false,mot=[],lastM=0,lastT=0,iv=null;
+var lo=null,hi=null,lockT=0,fineT=0,heat=0,lastPulse=0;
+var FLQ={sid:null,phase:'off',at:0,lastPlay:0},FLID=(new URLSearchParams(location.search).get('flower')|0)||9,FLB=null;
+function flSet(sid,phase,age){FLQ.sid=sid;FLQ.phase=phase;FLQ.at=Date.now()-(age||0);if(phase=='play')FLQ.lastPlay=FLQ.at}
+try{var bc=new BroadcastChannel('tunein-flower');bc.onmessage=function(e){var d=e.data||{};if(!d.id||d.id==FLID)flSet(d.sid,d.phase,0)}}catch(e){}
+async function flPoll(){var bases=FLB?[FLB]:['/api',location.protocol=='http:'?'http://'+location.hostname+':8080/api':'https://'+location.hostname+':8443/api'];
+ for(var i=0;i<bases.length;i++){try{var c=new AbortController(),t=setTimeout(function(){c.abort()},1200),r=await fetch(bases[i]+'/flower?id='+FLID,{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)continue;var j=await r.json();FLB=bases[i];if(j&&!j.missing&&j.sid&&j.online)flSet(j.sid,j.phase,j.age);return}catch(e){}}}
+setInterval(flPoll,1000);flPoll();
+var taken={},pocket=[],reqs=[],disc={},road=0,flash1=false,flash2=false,roundNo=0;
+
+/* ---- 音效（程式合成，沿用麥克風那個 AudioContext；右上角 🔊 可關） ---- */
+var SFXon=true;try{SFXon=localStorage.getItem('tunein-sfx')!='0'}catch(e){}
+function tone(t,f,d,v,ty,to){var o=AC.createOscillator(),g=AC.createGain();o.type=ty||'sine';o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.05)}
+var NT=[523.25,587.33,659.25,783.99,880,1046.5,1174.66,1318.5,1568];
+function sfx(n){if(!SFXon||!AC||AC.state=='closed')return;try{if(AC.state=='suspended')AC.resume();var t=AC.currentTime+.01,i;
+ if(n=='take'){tone(t,520,.13,.16,'sine',800);tone(t+.08,800,.18,.12,'triangle')}
+ else if(n=='found'){tone(t,NT[4],.22,.12);tone(t+.09,NT[7],.32,.1)}
+ else if(n=='found2'){for(i=0;i<3;i++)tone(t+i*.07,NT[5+i],.3,.09)}
+ else if(n=='flower'){tone(t,660,.1,.09,'sine',990)}
+ else if(n=='deliver'){for(i=0;i<5;i++)tone(t+i*.08,NT[i+1],.35,.12,'sine');tone(t+.45,NT[8],.5,.08,'triangle')}
+ else if(n=='win'){[0,2,4,5,7,8].forEach(function(k,j){tone(t+j*.11,NT[k],.5,.11);tone(t+j*.11,NT[k]/2,.5,.05,'triangle')})}
+ else if(n=='drop'){tone(t,320,.14,.14,'sine',180)}
+ else if(n=='road'){tone(t,200,.2,.2,'triangle',110);tone(t+.1,300,.12,.08)}
+ else if(n=='start'){for(i=0;i<3;i++)tone(t+i*.09,NT[i*2],.25,.1)}
+}catch(e){}}
+function sndBtn(){$('snd').innerHTML=SFXon?'<svg class="gi" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#FFE59A"/><path d="M16.500 9a4 4 0 0 1 0 6M19 6.500a8 8 0 0 1 0 11"/></svg>':'<svg class="gi" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#F1ECE7"/><path d="M17 9l5 6M22 9l-5 6"/></svg>'}sndBtn();
+$('snd').onclick=function(){SFXon=!SFXon;try{localStorage.setItem('tunein-sfx',SFXon?'1':'0')}catch(e){}sndBtn();if(SFXon)sfx('found')};
+if(QP.get('debug')=='1')document.body.classList.add('dbg');if(EMBED){document.body.classList.add('emb','rc');setTimeout(function(){var g=$('go');if(g)g.click()},150)}var END=+QP.get('end')||0;if(EMBED&&END){var tcf=function(){var l=Math.max(0,END-Date.now()),m=Math.floor(l/60000),s=Math.floor(l%60000/1000);$('tchip').textContent='剩 '+m+':'+('0'+s).slice(-2)};tcf();setInterval(tcf,500)}else if($('tchip'))$('tchip').style.display='none';
+var winPlayed=false;if(EMBED){$('bk').style.display='block';$('bk').onclick=function(){try{parent.postMessage({tunein:'close'},'*')}catch(e){}}}
+
+/* ---- 種下聲音 → 通知伺服器（Unity 小鎮依聲音名稱做反應：鳥／鐘／雨…） ---- */
+var PID=QP.get('pid')||('L'+Math.random().toString(36).slice(2,8)),NB=null,SKEY=['bird','chime','clock','chick','rain','drop','frog','cricket','fire','owl','sea','wind','bell'],RESM={'奶奶':'house','花店老闆':'flower','市場阿姨':'market','釣魚大叔':'river'};
+async function np(path,body){var bases=NB?[NB]:['/api',location.protocol=='http:'?'http://'+location.hostname+':8080/api':'https://'+location.hostname+':8443/api'];
+ for(var i=0;i<bases.length;i++){try{var c=new AbortController(),t=setTimeout(function(){c.abort()},2500),r=await fetch(bases[i]+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:c.signal});clearTimeout(t);if(!r.ok)continue;NB=bases[i];return await r.json()}catch(e){}}return null}
+async function ng(path){var bases=NB?[NB]:['/api',location.protocol=='http:'?'http://'+location.hostname+':8080/api':'https://'+location.hostname+':8443/api'];
+ for(var i=0;i<bases.length;i++){try{var c=new AbortController(),t=setTimeout(function(){c.abort()},2500),r=await fetch(bases[i]+path,{cache:'no-store',signal:c.signal});clearTimeout(t);if(!r.ok)continue;NB=bases[i];return await r.json()}catch(e){}}return null}
+async function plantNet(item,at,who,delay){if(!item)return;await new Promise(function(r){setTimeout(r,delay||0)});
+ var n=Math.max(0,SKEY.indexOf(item.k));if(!EMBED)await np('/join',{pid:PID,col:'flower',name:'收音員'});
+ var j=await np('/plant',{pid:PID,rh:n%3,pt:((n/3)|0)%3,wt:((n/9)|0)%3,q:.8,tr:SN[item.k]||'',sk:item.k,fine:item.l=='f'?1:0,at:at,res:at=='resident'?(RESM[who]||'house'):''});
+ if(j&&j.ok){toast('小鎮聽到了：'+SN[item.k]);backSoon()}}
+var _bt=0;function backSoon(){if(!EMBED)return;clearTimeout(_bt);_bt=setTimeout(function(){toast('回小鎮看花長出來');setTimeout(function(){try{parent.postMessage({tunein:'close'},'*')}catch(e){}},700)},1500)}
+window.addEventListener('pagehide',function(){if(EMBED)return;try{navigator.sendBeacon&&NB&&navigator.sendBeacon(NB+'/leave',new Blob([JSON.stringify({pid:PID})],{type:'application/json'}))}catch(e){}});
+function toast(t){var e=$('toast');e.textContent=t;e.classList.add('s');setTimeout(function(){e.classList.remove('s')},2400)}
+function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+$('thr').oninput=function(){$('thv').textContent=$('thr').value};
+/* ---- 一輪：3 位居民各想聽 2 個聲音，分屬不同環境的花 ---- */
+function mkReqs(srv){reqs=[];if(srv&&srv.length){srv.forEach(function(r){var m=RES.filter(function(x){return x.id==r.id})[0]||{id:r.id,n:r.name,ic:'lamp'};reqs.push({r:{id:m.id,n:r.name||m.n,ic:m.ic},need:r.want.slice(0,2),done:!!r.done,met:r.met!==false&&(r.met||r.done)})});return}
+ var slots=[];PK.forEach(function(p){slots.push({p:p,l:'m',s:p.m});slots.push({p:p,l:'f',s:p.f})});var used={};
+ RES.forEach(function(r){var t=0,a,b;do{a=slots[Math.random()*slots.length|0];b=slots[Math.random()*slots.length|0];t++}while(t<80&&(a.s==b.s||a.p.e==b.p.e||used[a.p.k+a.l]||used[b.p.k+b.l]));used[a.p.k+a.l]=1;used[b.p.k+b.l]=1;reqs.push({r:r,need:[a.s,b.s],done:false,met:true})})}
+async function newRound(fresh){roundNo++;winPlayed=false;taken={};pocket=fresh?[]:loadSeeds();road=0;reqs=[];$('win').style.display='none';
+ var j=fresh?await np('/residents/new',{}):await ng('/state?lite=1');mkReqs(j&&j.residents);renderAll()}
+/* 與伺服器同步：別的頁（主遊戲／其他手機）種的聲音也算進居民的願望 */
+async function syncRes(){if(!reqs.length)return;var j=await ng('/state?lite=1');if(!j||!j.residents)return;var ch=false;
+ j.residents.forEach(function(r){var q=reqs.filter(function(x){return x.r.id==r.id})[0];if(!q)return;if(r.met&&!q.met){q.met=true;ch=true}if(r.done&&!q.done){q.done=true;ch=true}else if(!r.done&&q.done&&q.need.join()!=r.want.join()){mkReqs(j.residents);ch=true}});
+ if(ch)renderAll()}
+setInterval(function(){if(!document.hidden)syncRes()},3000);
+function idxOf(s,skip){for(var i=0;i<pocket.length;i++)if(i!==skip&&pocket[i].k==s)return i;return -1}
+function canDeliver(q){if(q.done||!q.met)return false;var i0=idxOf(q.need[0],-1);if(i0<0)return false;return idxOf(q.need[1],i0)>=0}
+function renderReqs(){renderBar();$('reqs').innerHTML=reqs.map(function(q,i){var nt=!q.met?'<div class="nt lk"><i>'+QI+'</i></div><div class="nt lk"><i>'+QI+'</i></div>':q.need.map(function(k){return '<div class="nt'+(q.done||idxOf(k,-1)>=0?' got':'')+'"><i>'+SI[k]+'</i><em>'+SN[k]+'</em></div>'}).join('');
+ return '<div class="req l-'+q.r.id+(q.done?' done':'')+(q.met?'':' lock')+'"><div class="who"><b class="av"><svg viewBox="0 0 40 40"><use href="#i-'+q.r.ic+'"/></svg></b>'+q.r.n+(q.done?'<span class="st">聽到了</span>':q.met?'<span class="st">想聽</span>':'<span class="st">先去聊聊</span>')+'</div><div class="need">'+nt+'</div>'+((!q.done&&canDeliver(q))?'<button class="go" data-r="'+i+'">種下</button>':'')+'</div>'}).join('')}
+/* 內嵌時：口袋裡的種子存在手機，回小鎮的畫面（play.html）選了種下去 */
+function saveSeeds(){if(!EMBED)return;try{localStorage.setItem('tunein.seeds',JSON.stringify(pocket.map(function(p){return{k:p.k,l:p.l}})))}catch(e){}}
+function loadSeeds(){var out=[];if(!EMBED)return out;try{JSON.parse(localStorage.getItem('tunein.seeds')||'[]').slice(0,2).forEach(function(s){var pk=PK.filter(function(p){return p.m==s.k||p.f==s.k})[0];if(!pk||!SN[s.k])return;var l=pk.m==s.k?'m':'f',sk=pk.k+':'+l;taken[sk]=true;out.push({k:s.k,l:l,slot:sk})})}catch(e){}return out}
+function renderPocket(){saveSeeds();[0,1].forEach(function(i){var e=$('s'+i),p=pocket[i];if(p){e.className='slot';e.innerHTML='<i>'+SI[p.k]+'</i>'+SN[p.k]+''+'　✕'}else{e.className='slot e';e.textContent='空'}});$('road').disabled=!pocket.length;$('road').textContent=EMBED?'帶種子回小鎮種':'種在路邊'+(road?'（已種 '+road+'）':'')}
+function renderBook(){var h='';PK.forEach(function(p){var d=disc[p.k];if(!d)return;h+='<div class="bk">主聲 '+(d.m?SN[p.m]:'？')+'　細聲 '+(d.f?SN[p.f]:'？')+'</div>'});$('book').innerHTML=h||'<span class="cap">還沒聽過任何花</span>'}
+function renderBar(){var n=0,m=0;reqs.forEach(function(q){if(q.done)n++;if(q.met)m++});$('rbt').textContent='居民　聽到 '+n+'/'+reqs.length+(m<reqs.length?'　・　聊過 '+m+'/'+reqs.length:'')}
+function renderHeat(){var n=0;reqs.forEach(function(q){if(q.done)n++});$('heat').textContent='小鎮熱鬧 '+'●'.repeat(n)+'○'.repeat(reqs.length-n);if(n==reqs.length&&reqs.length){$('win').style.display='';if(!winPlayed){winPlayed=true;setTimeout(function(){sfx('win')},700)}}}
+function renderAll(){renderReqs();renderPocket();renderBook();renderHeat()}
+$('rbar').onclick=function(){document.body.classList.toggle('rc')};
+$('reqs').addEventListener('click',function(ev){var b=ev.target.closest&&ev.target.closest('button[data-r]');if(!b||b.disabled)return;var q=reqs[+b.getAttribute('data-r')];if(!canDeliver(q))return;var i0=idxOf(q.need[0],-1),i1=idxOf(q.need[1],i0),pl=[pocket[i0],pocket[i1]];pocket=pocket.filter(function(p,i){return i!==i0&&i!==i1});q.done=true;sfx('deliver');pl.forEach(function(x,i){plantNet(x,'resident',q.r.n,i*900)});vib([60,40,60,40,100]);toast(q.r.n+'：好好聽！');renderAll()});
+[0,1].forEach(function(i){$('s'+i).onclick=function(){var p=pocket[i];if(!p)return;taken[p.slot]=false;pocket.splice(i,1);sfx('drop');vib(20);renderAll()}});
+$('road').onclick=function(){if(EMBED){if(pocket.length){toast('回小鎮種下去');setTimeout(function(){try{parent.postMessage({tunein:'close'},'*')}catch(e){}},500)}return}if(!pocket.length)return;var px=pocket.shift();plantNet(px,'ground','',0);road++;sfx('road');vib([30,30,60]);toast('種在路邊了');renderAll()};
+$('again').onclick=function(){sfx('start');newRound(true)};
+var stC='',cardC={};function card(id,key,c,got){var el=$(id),h=key?'<span class="ic">'+SI[key]+'</span><b>'+(got?SN[key]:'？？？')+'</b>':'<span class="ic q">'+QI+'</span><b>還沒聽清楚</b>';if(cardC[id]!==h){el.innerHTML=h;cardC[id]=h}el.style.setProperty('--p',key?Math.round(c*100)/100:0);el.classList.toggle('on',got)}
+function popCard(id){var el=$(id);el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
+function take(layer,key,rid){key=key||curKey;if(!key||pocket.length>=2)return false;var p=pkOf(key),sk=key+':'+layer;if(taken[sk])return false;taken[sk]=true;pocket.push({k:layer=='m'?p.m:p.f,l:layer,slot:sk,rid:rid});hold=0;flash1=flash2=false;vib([20,30,20]);sfx('take');renderAll();toast('收進口袋（點口袋格子可以放回去）');if(EMBED&&pocket.length>=2){toast('口袋滿了，回小鎮種');setTimeout(function(){try{parent.postMessage({tunein:'close'},'*')}catch(e){}},1200)}return true}
+/* ---- 收集：跟著節奏點 → 錄下它 → 聲音卡（錄音只存在這支手機，不上傳） ---- */
+var MS=null,cards=[],ons=[],lastOn=0,col=null,DB=null;
+function dbOpen(){return new Promise(function(res){try{var r=indexedDB.open('tunein-rec',1);r.onupgradeneeded=function(){r.result.createObjectStore('r',{keyPath:'id'})};r.onsuccess=function(){res(r.result)};r.onerror=function(){res(null)}}catch(e){res(null)}})}
+function dbPut(o){if(!DB)return;try{DB.transaction('r','readwrite').objectStore('r').put(o)}catch(e){}}
+function dbDel(id){if(!DB)return;try{DB.transaction('r','readwrite').objectStore('r').delete(id)}catch(e){}}
+function dbAll(){return new Promise(function(res){if(!DB)return res([]);try{var q=DB.transaction('r').objectStore('r').getAll();q.onsuccess=function(){res(q.result||[])};q.onerror=function(){res([])}}catch(e){res([])}})}
+dbOpen().then(function(d){DB=d;return dbAll()}).then(function(a){cards=a.sort(function(x,y){return y.t-x.t});renderCards()});
+function playBlob(b){try{var u=URL.createObjectURL(b),a=new Audio(u);a.onended=function(){URL.revokeObjectURL(u)};a.play()}catch(e){}}
+function renderCards(){$('cards').innerHTML=cards.length?cards.map(function(c,i){var d=new Date(c.t);return '<div class="bk cardrow"><span>'+SI[c.k]+' '+SN[c.k]+'</span><span class="cap">'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'</span><button data-p="'+i+'">▶ 聽</button><button data-d="'+i+'">✕</button></div>'}).join(''):'<span class="cap">還沒有聲音卡。收下一個聲音時，會錄下它。</span>'}
+$('cards').addEventListener('click',function(ev){var b=ev.target.closest&&ev.target.closest('button');if(!b)return;if(b.hasAttribute('data-p')){var c=cards[+b.getAttribute('data-p')];if(c)playBlob(c.blob)}else if(b.hasAttribute('data-d')){var i=+b.getAttribute('data-d');if(cards[i]){dbDel(cards[i].id);cards.splice(i,1);renderCards()}}});
+function pulseTap(){var t=$('tap');if(!t)return;t.classList.add('hear');setTimeout(function(){t.classList.remove('hear')},180)}
+function closeCol(){if(col){clearInterval(col.tm);col.cancel=true;try{if(col.mr&&col.mr.state!='inactive')col.mr.stop()}catch(e){}}col=null;$('col').classList.remove('s')}
+function openCol(layer){if(col||!curKey||pocket.length>=2)return;var p=pkOf(curKey);col={key:curKey,layer:layer,k:layer=='m'?p.m:p.f,step:2,taps:[],blob:null,rid:null,err:''};startRec()}
+function colRender(){var c=col;if(!c)return;$('col').classList.add('s');$('colI').innerHTML=SI[c.k];
+ if(c.step==1){$('colT').textContent='跟著它點 4 下';$('colS').textContent='花唱的時候，照你聽到的節奏點，不用很準';$('colB').innerHTML='<button id="tap">點</button><div class="dots">'+[0,1,2,3].map(function(i){return i<c.taps.length?'●':'○'}).join(' ')+'</div>';$('colR').innerHTML='<button id="colX">取消</button>'}
+ else if(c.step==2){$('colT').textContent='錄下這個聲音';$('colS').textContent='手機貼近花，錄 5 秒，先別出聲';$('colB').innerHTML='<div class="cnt" id="cnt">'+c.left+'</div><div class="meter" style="width:240px;margin:8px auto"><i id="lvl"></i></div><div class="dots">● 錄音中</div>';$('colR').innerHTML='<button id="colX">取消</button>'}
+ else{$('colT').textContent=SN[c.k]+'！';$('colS').textContent=c.blob?'這是你收到的聲音（'+Math.max(1,Math.round(c.blob.size/1024))+' KB）':'沒錄到聲音'+(c.err?'（'+c.err+'）':'')+'，這張卡還是解鎖了';$('colB').innerHTML=c.blob?'<button id="colP" class="big">▶ 聽聽看</button>':'';$('colR').innerHTML='<button class="big" id="colOK">收進口袋</button>'+(c.blob?'<button id="colRe">重錄</button>':'')+'<button id="colX">不收</button>';var i=$('colI');i.classList.remove('pop');void i.offsetWidth;i.classList.add('pop')}}
+function startRec(){var c=col;if(!c)return;c.step=2;c.left=5;c.blob=null;c.cancel=false;colRender();var ch=[],mr=null;try{mr=new MediaRecorder(MS)}catch(e){}
+ if(!mr){c.step=3;colRender();return}
+ c.mr=mr;mr.onerror=function(e){c.err=(e&&e.error&&e.error.name)||'錄音錯誤'};mr.ondataavailable=function(e){if(e.data&&e.data.size)ch.push(e.data)};
+ mr.onstop=function(){if(col!==c||c.cancel)return;c.blob=ch.length?new Blob(ch,{type:mr.mimeType||'audio/webm'}):null;c.step=3;vib([30,40,30]);colRender()};
+ try{mr.start()}catch(e){c.step=3;colRender();return}
+ var t0=Date.now();c.tm=setInterval(function(){var l=Math.max(0,5-Math.floor((Date.now()-t0)/1000));c.left=l;var e=$('cnt');if(e)e.textContent=l;if(Date.now()-t0>=5000){clearInterval(c.tm);try{mr.stop()}catch(x){}}},200)}
+$('col').addEventListener('pointerdown',function(ev){if(!col||ev.target.id!='tap')return;ev.preventDefault();var c=col;if(c.step!=1||c.taps.length>=4)return;c.taps.push(Date.now());vib(15);colRender();
+ if(c.taps.length>=4){var h=0,seen=0,t0=c.taps[0]-1500;ons.forEach(function(o){if(o>t0)seen++});c.taps.forEach(function(t){if(ons.some(function(o){return Math.abs(o-t)<450}))h++});if(seen)toast('節拍 '+h+'/4'+(h>=3?' ✨':''));setTimeout(function(){if(col===c)startRec()},500)}});
+$('col').addEventListener('click',function(ev){var id=ev.target.id;if(!col||!id)return;
+ if(id=='colX')closeCol();else if(id=='colP')playBlob(col.blob);else if(id=='colRe')startRec();
+ else if(id=='colOK'){var c=col;if(c.blob&&!c.rid){c.rid=Date.now();var o={id:c.rid,blob:c.blob,k:c.k,sid:c.key,l:c.layer,t:c.rid};cards.unshift(o);dbPut(o);renderCards()}
+  if(take(c.layer,c.key,c.rid))closeCol();else if(pocket.length>=2)toast('口袋滿了，先放掉一個');else closeCol()}});
+$('cm').onclick=function(){if($('cm').classList.contains('rdy'))take('m')};$('cf').onclick=function(){if($('cf').classList.contains('rdy'))take('f')};
+$('go').onclick=async function(){
+ $('err').textContent='';
+ try{if(window.DeviceMotionEvent&&DeviceMotionEvent.requestPermission){try{await DeviceMotionEvent.requestPermission()}catch(e){}}}catch(e){}
+ window.addEventListener('devicemotion',function(ev){var a=ev.accelerationIncludingGravity||ev.acceleration;if(!a||a.x==null)return;hasMotion=true;var m=Math.hypot(a.x,a.y,a.z),d=Math.abs(m-lastM);lastM=m;mot.push(d);if(mot.length>30)mot.shift()});
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('err').textContent='這個網址拿不到麥克風：探測器需要 https（用 Tailscale 網址），或改在電腦上開這一頁（localhost）。';return}
+ try{var st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});MS=st;
+  AC=new (window.AudioContext||window.webkitAudioContext)();var src=AC.createMediaStreamSource(st),hp=AC.createBiquadFilter(),lp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=500;lp.type='lowpass';lp.frequency.value=4500;an=AC.createAnalyser();an.fftSize=2048;src.connect(hp);hp.connect(lp);lp.connect(an);buf=new Float32Array(an.fftSize);
+ }catch(e){$('err').textContent='麥克風打不開：'+(e&&e.name||e)+'（要允許麥克風；網址要是 https）';return}
+ $('start').style.display='none';$('play').style.display='';lastT=Date.now();newRound();sfx('start');iv=setInterval(tick,100)};
+var buf,UC={};function ui(k,v,fn){if(UC[k]!==v){UC[k]=v;fn(v)}}
+function med(a){var s=a.slice().sort(function(x,y){return x-y});return s[s.length>>1]}
+function bandsNow(){an2.getFloatFrequencyData(spec);var bw=AC.sampleRate/2048,o=[0,0,0,0,0,0,0,0,0,0,0,0];for(var k=1;k<spec.length;k++){var f=k*bw;if(f<500||f>=4500)continue;var b=Math.floor(Math.log(f/500)/Math.log(9)*12);if(b>11)b=11;o[b]+=Math.pow(10,spec[k]/10)}return o}
+function tick(){
+ var now=Date.now(),dt=Math.min(.3,(now-lastT)/1000);lastT=now;an.getFloatTimeDomainData(buf);var s=0;for(var i=0;i<buf.length;i++)s+=buf[i]*buf[i];var db=10*Math.log10(s/buf.length+1e-12);fr.push(db);if(fr.length>200)fr.shift();
+ if(fr.length>5){var mn=Math.min(fr[fr.length-2],fr[fr.length-3],fr[fr.length-4]);if(db-mn>=6&&now-lastOn>250){lastOn=now;ons.push(now);if(ons.length>40)ons.shift();if(col)pulseTap()}}
+ if(col&&col.step==2){var lv=$('lvl');if(lv)lv.style.width=Math.round(clamp((db+65)/45)*100)+'%'}
+ var ready=fr.length>=80,floor=null,rec=null,snr=0;
+ if(ready){var sorted=fr.slice().sort(function(a,b){return a-b});floor=sorted[Math.floor(sorted.length*.1)];rec=med(fr.slice(-12));snr=rec-floor;sm=sm==null?snr:sm*.7+snr*.3;snr=sm}
+ var thr=+$('thr').value;
+ /* 花是誰：由花自己回報（不用聽聲音猜）；手機麥克風只判斷「有沒有靠近」 */
+ var fresh=!!FLQ.sid&&!!pkOf(FLQ.sid)&&now-FLQ.at<4000&&FLQ.phase!='off',flOn=fresh&&(FLQ.phase=='play'||now-FLQ.lastPlay<1200);
+ var hear=ready&&flOn&&(isNear?snr>=thr-3:snr>=thr);
+ if(hear&&curKey!==FLQ.sid){curKey=FLQ.sid;lo=hi=null;lockT=fineT=0;hold=0;flash1=flash2=false;toast('聽到花：'+ENV[pkOf(curKey).e].e);sfx('flower')}
+ if(curKey&&now-lastNear>4000){curKey=null;lo=hi=null;lockT=fineT=0;hold=0;flash1=flash2=false}
+ isNear=hear;var near=isNear;if(near)lastNear=now;
+ if(hasMotion&&mot.length>=10){var mm=0;mot.forEach(function(d){mm+=d});still=(mm/mot.length)<.9}else still=true;
+ /* 尋聲：只看花在播的時候的音量。走動找「最清楚的點」，在那裡停住才算找到 */
+ var inPlay=ready&&fresh&&FLQ.phase=='play';
+ if(curKey&&inPlay){if(lo==null){lo=hi=snr}lo=Math.min(lo+.3*dt,snr);hi=Math.max(hi-.3*dt,snr);heat=hi-lo>=2?clamp((snr-lo)/(hi-lo)):.5}
+ /* 不會卡住：靠近就一定會前進，越熱（越接近最清楚的點）、手越穩就越快 */
+ if(!ready||!curKey){}else if(inPlay){if(near)lockT+=dt*((still?1:.5)*(.55+.9*heat));else lockT-=.5*dt}else if(now-lastNear>3500)lockT-=dt;
+ lockT=Math.max(0,Math.min(2.2,lockT));var lk=clamp(lockT/1.8);
+ if(curKey&&inPlay){if(lk>=1&&near)fineT+=dt*((still?1:.4)*(.5+.9*heat));else if(!near)fineT-=.3*dt}fineT=Math.max(0,Math.min(4,fineT));var fk=clamp(fineT/3);
+ if(!curKey)heat=0;
+ if(near&&curKey&&lk<1&&now-lastPulse>1400-1150*heat){lastPulse=now;vib(18+Math.round(heat*22))}
+ var p=curKey?pkOf(curKey):null,tm0=p&&taken[curKey+':m'],tf0=p&&taken[curKey+':f'];
+ var c1=!p||tm0?0:lk,c2=!p||tf0?0:fk;
+ if(p){disc[curKey]=disc[curKey]||{};var nd=false;if(c1>=1&&!disc[curKey].m){disc[curKey].m=1;nd=true}if(c2>=1&&!disc[curKey].f){disc[curKey].f=1;nd=true}if(nd)renderBook()}
+ var dd=p?disc[curKey]||{}:{};
+ ui('r1',Math.round(c1*100),function(){$('r1').style.strokeDashoffset=766.5*(1-c1)});ui('r2',Math.round(c2*100),function(){$('r2').style.strokeDashoffset=653.4*(1-c2)});
+ ui('ot',1,function(){$('orb').innerHTML=PING});
+ ui('os',Math.round((1+.12*(c1+c2)+(near?.04:0))*100),function(v){$('orb').style.transform='scale('+v/100+')'});
+ ui('ob',c2>=1?1:c1>=1?2:0,function(v){$('orb').style.background=v==1?'#B7FBFF':v==2?'#FFD3D8':'#fff'});
+ card('cm',p&&p.m,(dd.m||tm0)?1:c1,!!(dd.m||tm0));card('cf',p&&p.f,(dd.f||tf0)?1:c2,!!(dd.f||tf0));
+ if($('dbgd').open){$('mf2').style.width=(flOn?100:0)+'%';$('mf').style.width=(Math.max(0,Math.min(30,snr))/30*100)+'%';$('mt').style.left=(thr/30*100)+'%'}
+ var msg,sub='';
+ if(!ready){msg='量一下周圍…';sub='先別動，約 '+Math.max(0,Math.ceil((80-fr.length)/10))+' 秒（要等花換氣的空檔）'}
+ else if(!curKey&&!fresh){msg='還沒收到花的訊號';sub='走近一朵會唱歌的花'}
+ else if(!curKey&&snr>=thr){msg='那不是花的聲音';sub='聽到別的聲音了，往花的方向靠近'}
+ else if(!curKey){msg='走近一朵花';sub='去找居民想聽的聲音'}
+ else if(tm0&&tf0){msg='這朵花的聲音你都收過了';sub='去找別的花'}
+ else if(!near&&now-lastNear>3500){msg='再靠近一點';sub='聲音是從花那邊傳來的'}
+ else if(!inPlay){msg='花在換氣…';sub='等它再唱，繼續找最清楚的地方'}
+ else if(c2>=1){msg='細聲也聽到了！';sub='決定要收哪一個（口袋只有 2 格）'}
+ else if(c1>=1){msg=!tf0?'✨ 好像還有更細的聲音…':'找到了！就是這裡';sub=!tf0?'手別動，再聽一下':'可以收下了'}
+ else if(!still){msg=heat>=.85?'很近了！手停住':'再找找';sub=heat>=.85?'停在這裡不要動':'聲音變大＝在靠近'}
+ else if(heat>=.85){msg='就是這附近…';sub='別動，確認一下'}
+ else if(heat>=.5){msg='有點近了';sub='再換個位置試試，聲音會更大'}else{msg='還很遠';sub='換個方向走走看'}
+ ui('msg',msg,function(v){$('msg').textContent=v});ui('sub',sub,function(v){$('sub').textContent=v});
+ var stI=((c1>=1&&pocket.length<2)||(c2>=1&&pocket.length<2))?2:curKey?1:pocket.length?3:0,stH=['①找花','②聽清楚','③收下','④種給居民'].map(function(t,i){return '<span class="'+(i==stI?'on':i<stI?'dn':'')+'">'+t+'</span>'}).join('');if(stC!==stH){stC=stH;$('steps').innerHTML=stH}
+ if(c1>=1&&!flash1){flash1=true;sfx('found');vib([30,40,30]);popCard('cm')}if(c1<.5)flash1=false;if(c2>=1&&!flash2){flash2=true;sfx('found2');vib([40,40,40,40,60]);popCard('cf')}if(c2<.5)flash2=false;
+ ui('tm',!(c1>=1)||pocket.length>=2,function(v){$('cm').classList.toggle('rdy',!v)});ui('tf',!(c2>=1)||pocket.length>=2,function(v){$('cf').classList.toggle('rdy',!v)});ui('fu',pocket.length>=2&&(c1>=1||c2>=1),function(v){$('full').style.display=v?'':'none'});
+ if($('dbgd').open)$('dbg').textContent='花回報 '+(FLQ.sid||'無')+'（'+FLQ.phase+'，'+(FLQ.at?((now-FLQ.at)/1000).toFixed(1)+' 秒前':'-')+'）\n認定的花 '+(curKey||'無')+'\n高出底噪 '+snr.toFixed(1)+' dB（門檻 '+thr+'）\n靠近 '+(near?'是':'否')+'　拿穩 '+(still?'是':'否')+(hasMotion?'':'（沒有感應器，當作拿穩）')+'\n熱度 '+Math.round(heat*100)+'%（範圍 '+(lo==null?'-':lo.toFixed(0)+'～'+hi.toFixed(0))+' dB）　鎖定 '+lockT.toFixed(1)+'　細聲 '+fineT.toFixed(1)+'\n主聲 '+Math.round(c1*100)+'%　細聲 '+Math.round(c2*100)+'%'}
+})();
+</script>
+</body></html>

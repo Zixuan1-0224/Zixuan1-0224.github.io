@@ -1,0 +1,8 @@
+(function(){var sl=document.getElementById('ccH'),dp=document.getElementById('ccD'),box=document.getElementById('swr'),cv=document.getElementById('pvCv');if(!sl||!dp||!box)return;
+var L=[[345,22],[14,24],[40,22],[78,22],[150,24],[190,28],[220,30],[255,30],[285,28],[318,26],[0,0]];
+function hx(h,d){h/=1;var s=(34+.22*d)/100,l=(82-.24*d)/100,a=s*Math.min(l,1-l),k=function(n){return(n+h/30)%12},f=function(n){return l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)))},x=function(v){return Math.round(v*255).toString(16).padStart(2,'0')};return'#'+x(f(0))+x(f(8))+x(f(4))}
+function mark(){var h=+sl.value,d=+dp.value,best=-1,bd=1e9;L.forEach(function(p,i){if(i===L.length-1)return;var e=Math.min(Math.abs(p[0]-h),360-Math.abs(p[0]-h))+Math.abs(p[1]-d);if(e<bd){bd=e;best=i}});Array.prototype.forEach.call(box.children,function(b,i){b.setAttribute('aria-pressed',(i===best&&bd<8)?'true':'false')})}
+function hop(){if(!cv)return;cv.classList.remove('hop');void cv.offsetWidth;cv.classList.add('hop');setTimeout(function(){cv.classList.remove('hop')},600)}
+function pick(h,d){sl.value=h;dp.value=d;sl.dispatchEvent(new Event('input',{bubbles:true}));mark();hop()}
+L.forEach(function(p,i){var b=document.createElement('button');b.type='button';if(i===L.length-1){b.className='sw dice';b.textContent='\uD83C\uDFB2';b.setAttribute('aria-label','隨機');b.addEventListener('click',function(){var q=L[Math.floor(Math.random()*(L.length-1))];pick((q[0]+Math.round((Math.random()-.5)*30)+360)%360,Math.max(0,Math.min(60,q[1]+Math.round((Math.random()-.5)*20))))})}else{b.className='sw';b.style.setProperty('--c',hx(p[0],p[1]));b.setAttribute('aria-label','顏色 '+(i+1));b.addEventListener('click',function(){pick(p[0],p[1])})}box.appendChild(b)});
+setTimeout(mark,300)})();

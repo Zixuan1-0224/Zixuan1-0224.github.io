@@ -1,0 +1,34 @@
+<!doctype html>
+<!--
+═══════════════════════════════════════════════════════════════════
+ town3d.html（手機用的 3D 小鎮）功能索引 —— 要改哪個功能，直接說編號（例如「改 T09」）
+ 搜尋方法：Ctrl+F 搜「[T09]」就會跳到那一段
+───────────────────────────────────────────────────────────────────
+ CONFIG   常改的數字（速度、鏡頭、名字牌高度、Blip 泡泡）→ 檔案前段 const CFG
+ T01 設定與座標換算      T02 Unity 數值（光、霧、後製）   T03 渲染
+ T04 Shader（SoftToon／地面／草）  T05 模型與倍率（含 Blip 倍率）  T06 小鎮配置
+ T07 樹／花／長椅／石頭   T08 草                    T09 角色（Ping、名字牌、Blip 模型）
+ T10 聲音回報(交給 play.html 播)   T11 小鳥事件     T12 太陽雨
+ T13 Ping 出現特效        T14 我的 Ping／其他玩家    T15 輸入
+ T16 移動與碰撞           T17 伺服器同步（/state、Blip 同步、新一輪重置 resetWorld）
+ T18 對話（點一下繼續）   T19 靠近居民→「說話」按鈕  T20 主迴圈（鏡頭）
+ T22 光暈（Bloom 近似，BLOOM 可調）
+ T07b 河／池塘／橋（資料來自 town_layout.json 的 water；水面 Shader 照 Unity ToonRiver；水中擋住、橋面可走）
+ T21 聲音點（探測器找的光點：靠近、sndSend 送方向與距離、detInfo 提示）  設定在 sound_spots.json
+═══════════════════════════════════════════════════════════════════
+-->
+
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>聲音小鎮 3D</title>
+<link rel="stylesheet" href="css/town3d.css?v=2"></head><body>
+<div id="vig"></div>
+<div id="dlg" hidden><b id="dn"></b><div id="dt"></div><i id="dk">點一下繼續</i></div>
+<div id="load"><div id="lt">Blip 正在布置小鎮…</div><div id="bar"><i id="bi"></i></div></div>
+<script>/* 載入診斷：模組或模型載不到時，把原因顯示在載入畫面（手機沒有 Console） */
+(function(){function say(m){var t=document.getElementById('lt');if(t&&document.getElementById('load')&&!document.getElementById('load').hidden&&document.getElementById('load').style.display!=='none')t.textContent=m;}
+window.addEventListener('error',function(e){say('載入出問題：'+(e.message||(e.target&&(e.target.src||e.target.href))||'未知'));},true);
+window.addEventListener('unhandledrejection',function(e){say('載入出問題：'+(e.reason&&e.reason.message||e.reason));});
+setTimeout(function(){var b=document.getElementById('bi');if(b&&!parseInt(b.style.width||'0'))say('還在下載小鎮…（網路較慢，請稍等）');},12000);})();</script>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/addons/"}}</script>
+<script src="config.js"></script><script type="module" src="js/town3d.js?v=35"></script></body></html>

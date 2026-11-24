@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>即時畫面</title>
+<style>
+html,body{margin:0;height:100%;background:#3E2A5A;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+body.cover video{object-fit:cover}
+video{width:100%;height:100%;object-fit:contain;display:block;background:#3E2A5A}
+#m{position:fixed;left:12px;right:12px;bottom:12px;text-align:center;font-size:14px;line-height:1.5;color:#FFFAF2;background:rgba(61,43,69,.7);border-radius:16px;padding:8px 12px}
+#m:empty{display:none}
+#st{position:fixed;left:8px;top:8px;font:14px/1.5 ui-monospace,Consolas,monospace;color:#FFFAF2;background:rgba(61,43,69,.8);border-radius:12px;padding:6px 10px;white-space:pre;display:none}
+#m{display:none !important}
+#wait{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;color:#3E2A5A;background-color:#F7F3EF;background-image:linear-gradient(rgba(17,17,17,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(17,17,17,.06) 1px,transparent 1px);background-size:28px 28px;z-index:5;pointer-events:none}
+#wait[hidden]{display:none}
+#wait .blip{width:168px;height:140px;animation:wbob 2.2s ease-in-out infinite;filter:drop-shadow(0 8px 0 rgba(62,42,90,.08))}
+#wait .blip svg{display:block;overflow:visible;transform-origin:50% 100%;animation:wsway 3.4s ease-in-out infinite}
+@keyframes wsway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+#wait h1{margin:6px 0 0;font:700 24px/1.3 "Zen Maru Gothic","Noto Sans TC","PingFang TC",system-ui,sans-serif}
+#wait p{margin:0;max-width:20em;font:500 16px/1.6 "Noto Sans TC","PingFang TC",system-ui,sans-serif;color:rgba(62,42,90,.85)}
+#wait .dots{display:flex;gap:8px;margin-top:6px}
+#wait .dots i{width:12px;height:12px;border-radius:50%;animation:wdot 1.2s ease-in-out infinite}
+#wait .dots i:nth-child(1){background:#FA96CD}#wait .dots i:nth-child(2){background:#BAE6FD;animation-delay:.2s}#wait .dots i:nth-child(3){background:#FEF3C9;box-shadow:0 0 0 2px #FFE59A inset;animation-delay:.4s}
+@keyframes wbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes wdot{0%,100%{transform:translateY(0) scale(.85);opacity:.6}50%{transform:translateY(-8px) scale(1.1);opacity:1}}
+@keyframes wglow{0%,100%{box-shadow:0 0 0 0 rgba(254,243,201,.0)}50%{box-shadow:0 0 0 7px rgba(254,243,201,.7)}}
+@keyframes wblink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+@media (prefers-reduced-motion:reduce){#wait *,#wait .blip{animation:none !important}}
+</style></head><body>
+<video id="v" autoplay muted playsinline></video><p id="m" role="status"></p>
+<div id="wait" role="status" aria-live="polite"><div class="blip" aria-hidden="true"><svg viewBox="0 0 48 40" width="168" height="140"><ellipse cx="8" cy="24" rx="7.200" ry="12" transform="rotate(8 8 24)" fill="#F0A6BA"/><ellipse cx="40" cy="24" rx="7.200" ry="12" transform="rotate(-8 40 24)" fill="#F0A6BA"/><path d="M24 12c10 0 13 5 13 12s-3 12-13 12-13-5-13-12 3-12 13-12z" fill="#F8C3D0"/><circle cx="19.500" cy="22" r="3.200" fill="#EA4B5A"/><ellipse cx="19.500" cy="22" rx="1.800" ry="1.400" fill="#fff"/><circle cx="28.500" cy="22" r="3.200" fill="#EA4B5A"/><ellipse cx="28.500" cy="22" rx="1.800" ry="1.400" fill="#fff"/><path d="M22.800 21.200l2.400 2.200M25.200 21.200l-2.400 2.200" stroke="#EA4B5A" stroke-width="1.100" stroke-linecap="round"/><circle cx="21.200" cy="17.600" r=".9" fill="#7CCCE0"/><circle cx="26.800" cy="17.600" r=".9" fill="#7CCCE0"/><ellipse cx="24" cy="10.400" rx="9" ry="4.800" fill="#E53E2E"/><rect x="15.500" y="11.800" width="17" height="3.200" rx="1.600" fill="#F3F0EC"/><circle cx="24" cy="5.200" r="1.800" fill="#E8E4E0"/></svg></div><h1 id="wt">小鎮正在準備…</h1><p id="ws">Blip 在整理畫面，等我一下</p><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div></div><div id="st"></div>
+<script type="module">
+import { getServerConfig, getRTCConfiguration } from "/js/config.js";
+import { RenderStreaming } from "/module/renderstreaming.js";
+import { Signaling, WebSocketSignaling } from "/module/signaling.js";
+const v = document.getElementById('v'), m = document.getElementById('m'), st = document.getElementById('st');
+const q = new URLSearchParams(location.search);
+const DELAY = Number(q.get('delay') || 60);   // 播放緩衝（毫秒）：越大越順、延遲越高；?delay=0 關閉
+const wait$ = document.getElementById('wait'), wt = document.getElementById('wt'), ws = document.getElementById('ws');
+// 把技術訊息換成遊戲口吻的待機畫面；沒有訊息（真的有畫面了）就收起來
+const WORDS = [
+  [/^連線中/, '小鎮正在準備…', 'Blip 在整理畫面，等我一下'],
+  [/^已連線/, '快好了！', '小鎮的畫面正在趕過來'],
+  [/一直收不到畫面/, '訊號有點遠', '試試和電腦連同一個 Wi-Fi，Blip 會一直幫你重試'],
+  [/一直沒畫面/, '小鎮還沒開門', '請工作人員確認電腦上的小鎮已經打開'],
+  [/點一下畫面/, '點一下畫面', '小鎮就會開始動起來'],
+  [/連不上伺服器/, '找不到小鎮', 'Blip 正在重新找路，請稍等'],
+  [/中斷|停住|重新連線|網路回來/, '訊號斷了一下', 'Blip 正在追上來…']
+];
+let waitSince = 0, lastSay = '';
+const say = t => {
+  if (!t) { wait$.hidden = true; waitSince = 0; return; }
+  lastSay = t; if (!waitSince) waitSince = Date.now();
+  let w = WORDS.find(x => x[0].test(t)) || [0, '小鎮正在準備…', 'Blip 在整理畫面，等我一下'];
+  const sec = (Date.now() - waitSince) / 1000;   // 等越久，說明越誠實（不再一直說「快好了」）
+  if (w[1] === '快好了！' || w[1] === '小鎮正在準備…') {
+    if (sec > 20) w = [0, '訊號有點慢', 'Blip 會一直幫你重試，也可以靠近 Wi-Fi 一點'];
+    else if (sec > 8) w = [0, '還在趕路', '再等一下下，畫面就到了'];
+  }
+  wt.textContent = w[1]; ws.textContent = w[2]; wait$.hidden = false;
+};
+// 等待中每 2 秒依經過時間更新一次說明
+setInterval(() => { if (!wait$.hidden && /^(連線中|已連線)/.test(lastSay)) say(lastSay); }, 2000);
+let rs = null, wait = 0, statsIv = 0, rcv = null;
+// 診斷：網址加 ?stats=1 左上角顯示 fps／丟包／連線方式（relay＝繞遠路）
+function startStats() {
+  if (q.get('stats') !== '1') return; st.style.display = 'block'; let last = null;
+  clearInterval(statsIv);
+  statsIv = setInterval(async () => {
+    if (!rcv) return; try {
+      const rep = await rcv.getStats(), o = {}; let pair = null, cands = {};
+      rep.forEach(s => { if (s.type === 'inbound-rtp' && s.kind === 'video') o.v = s; if (s.type === 'candidate-pair' && s.nominated && s.state === 'succeeded') pair = s; if (s.type === 'local-candidate' || s.type === 'remote-candidate') cands[s.id] = s; });
+      const s = o.v; if (!s) return; const now = performance.now(); let kbps = 0, fps = s.framesPerSecond || 0;
+      if (last) kbps = Math.round((s.bytesReceived - last.b) * 8 / (now - last.t));
+      last = { b: s.bytesReceived, t: now };
+      const lc = pair && cands[pair.localCandidateId], rc = pair && cands[pair.remoteCandidateId];
+      st.textContent = '畫面 ' + (s.frameWidth || 0) + '×' + (s.frameHeight || 0) + '　' + fps.toFixed(0) + ' fps\n速度 ' + kbps + ' kbps\n丟包 ' + (s.packetsLost || 0) + '　丟格 ' + (s.framesDropped || 0) + '\n抖動 ' + Math.round((s.jitter || 0) * 1000) + ' ms\n連線 ' + (lc ? lc.candidateType : '?') + ' / ' + (rc ? rc.candidateType : '?') + (pair ? '　延遲 ' + Math.round((pair.currentRoundTripTime || 0) * 1000) + ' ms' : '');
+    } catch (e) {}
+  }, 1000);
+}
+async function start() {
+  say('連線中…');
+  try {
+    const cfg = await getServerConfig();
+    const sig = cfg.useWebSocket ? new WebSocketSignaling() : new Signaling();
+    rs = new RenderStreaming(sig, getRTCConfiguration());
+    const stream = new MediaStream(); v.srcObject = stream;
+    rs.onTrackEvent = d => {
+      stream.addTrack(d.track); say('已連線，等第一張畫面…'); v.play().catch(() => say('點一下畫面開始播放'));
+      // 讓瀏覽器多留一點緩衝，畫面比較順（有些瀏覽器不支援，忽略即可）
+      try { const r = (d.transceiver && d.transceiver.receiver) || d.receiver; if (r && d.track.kind === 'video') { rcv = r; if (DELAY > 0) { if ('jitterBufferTarget' in r) r.jitterBufferTarget = DELAY; if ('playoutDelayHint' in r) r.playoutDelayHint = DELAY / 1000; } startStats(); } } catch (e) {}
+    };
+    rs.onConnect = () => { say('已連線，等 Unity 的畫面…'); try { rs.createDataChannel('input'); } catch (e) {} };
+    rs.onDisconnect = async () => { if (restarting) return; clearTimeout(wait); rcv = null; say('連線中斷，重新連線…'); try { await rs.stop(); } catch (e) {} rs = null; setTimeout(start, 1200); };
+    wait = setTimeout(() => say('一直沒畫面：確認 Unity 在 Play'), 8000);
+    // 連線編號帶上玩家編號（pv.玩家編號.亂數）：Unity 依編號配給這位玩家專屬的攝影機與串流；沒帶編號就走共用畫面
+    const pid = (q.get('pid') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 24);
+    await rs.start(); await rs.createConnection(pid ? 'pv.' + pid + '.' + Math.random().toString(36).slice(2, 8) : undefined);
+  } catch (e) { say('連不上伺服器，重試中'); setTimeout(start, 2000); }
+}
+// 看門狗：連線沒斷、畫面卻不動（解碼的格數 8 秒沒增加），或切回頁面時，整個重新連線
+let lastFrames = -1, stuck = 0, restarting = false, fails = 0;
+async function restart(why) {
+  if (restarting) return; restarting = true; shown = false; fails++; say(fails >= 3 ? '一直收不到畫面。可能是手機網路擋住即時畫面：改連和電腦同一個 Wi-Fi 試試（仍會自動重試）' : why); clearTimeout(wait); rcv = null;
+  try { parent.postMessage({ tunein: 'video', ok: false }, '*'); } catch (e) {}
+  try { if (rs) await rs.stop(); } catch (e) {} rs = null; stuck = 0; lastFrames = -1;
+  setTimeout(() => { restarting = false; start(); }, 800);
+}
+setInterval(async () => {
+  if (!rcv || restarting) return;
+  try { const rep = await rcv.getStats(); let f = -1; rep.forEach(x => { if (x.type === 'inbound-rtp' && x.kind === 'video') f = x.framesDecoded; });
+    if (f < 0) f = 0;   // 完全沒有影像封包進來也算「停住」
+    if (f === lastFrames) { if (++stuck >= 9) restart('畫面停住，重新連線…'); } else { stuck = 0; lastFrames = f; } } catch (e) {}   /* 9×2=18 秒：Unity 剛加進第二位玩家會短暫卡幾秒，太早重連會連帶讓另一位也斷線 */
+}, 2000);
+// 切回頁面或網路回來：不直接重連，先讓看門狗確認畫面真的停了才重連（以前一切換就重連，畫面會黑一下）
+document.addEventListener('visibilitychange', () => { if (!document.hidden && rs) { stuck = Math.max(stuck, 3); v.play().catch(() => {}); } });
+window.addEventListener('online', () => { if (!restarting) restart('網路回來了，重新連線…'); });
+v.addEventListener('click', () => v.play());
+// 真的有畫面了才清掉提示（以前一收到軌道就清掉，沒畫面時就一片黑、什麼都不說）
+let shown = false;
+const gotFrame = () => { if (shown) return; shown = true; fails = 0; clearTimeout(wait); say(''); try { parent.postMessage({ tunein: 'video', ok: true }, '*'); } catch (e) {} };
+v.addEventListener('playing', () => { if ('requestVideoFrameCallback' in v) v.requestVideoFrameCallback(gotFrame); else setTimeout(gotFrame, 600); });
+// 手機開了「等 Ping」模式（wait=1）：先等 Unity 說這位玩家的 Ping 生出來了才開始接畫面，第一眼就是自己的 Ping；最多等 10 秒
+async function waitUp() {
+  const pid = (q.get('pid') || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 24); if (!pid || q.get('wait') !== '1') return;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 10000) {
+    try { const api = parent.__netApi && parent.__netApi(); if (api) { const j = await (await fetch(api + '/state', { cache: 'no-store' })).json(); const me = (j.players || []).find(p => p.pid === pid); if (me && me.up) return; } } catch (e) {}
+    await new Promise(r => setTimeout(r, 400));
+  }
+}
+say('連線中…'); waitUp().then(start);
+</script><script>if(/[?&]fit=cover/.test(location.search))document.body.classList.add('cover')</script></body></html>

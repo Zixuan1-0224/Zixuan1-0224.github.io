@@ -1,0 +1,17 @@
+{
+  "_說明": "改這個檔就能調整，不用動程式。存檔後重新整理頁面。刪掉某一項＝用程式內建值。",
+  "play": { "_說明": "手機頁數字", "roundSec": 480, "settleSec": 16, "leaveAutoSec": 30, "pocket": 2 },
+  "town": {
+    "_說明": "小鎮手感與鏡頭（公尺／秒、度／秒、公尺）",
+    "walkSpeed": 4.5, "backSpeed": 2.2, "turnDeg": 120,
+    "camBack": 6.5, "camHeight": 3.5, "camLookAhead": 3.5,
+    "talkRange": 5, "blipR": 0.45, "nameTagY": 2.55, "blipBubbleY": 4.1, "bubbleChars": 10, "bubbleLines": 4
+  },
+  "css": {
+    "_說明": "網頁配色、字體、字級。key 就是 CSS 變數名稱，例如 --rose 粉、--ink 文字色",
+    "--rose": "#FFB5C1", "--lilac": "#B7E1D1", "--blue": "#A9D3FF", "--lemon": "#FFE59A",
+    "--ink": "#111111", "--paper": "#F7F3EF",
+    "--u-h": "20px", "--u-b": "16px", "--u-s": "14px"
+  },
+  "extraCss": ""
+}

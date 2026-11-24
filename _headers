@@ -1,0 +1,16 @@
+/tunein/models/*
+  Cache-Control: public, max-age=86400
+/tunein/fonts/*
+  Cache-Control: public, max-age=604800
+/tunein/audio/*
+  Cache-Control: public, max-age=86400
+/tunein/vendor/*
+  Cache-Control: public, max-age=604800
+/tunein/*.png
+  Cache-Control: public, max-age=86400
+/tunein/js/*
+  Cache-Control: no-cache
+/tunein/*.html
+  Cache-Control: no-cache
+/tunein/*.json
+  Cache-Control: no-cache

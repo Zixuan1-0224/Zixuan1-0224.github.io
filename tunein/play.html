@@ -1,0 +1,227 @@
+<!doctype html>
+<!--
+═══════════════════════════════════════════════════════════════════
+ play.html（手機主頁）功能索引 —— 要改哪個功能，直接說編號（例如「改 P17」）
+ 搜尋方法：Ctrl+F 搜「[P17]」就會跳到那一段；常改的數字在「CONFIG」
+───────────────────────────────────────────────────────────────────
+ CONFIG 一輪秒數、結算秒數、離場卡秒數、口袋格數（程式前段 const CONFIG）
+ P01 居民資料（4 位名字、聲音、顏色）  P02 小工具（提示、彈窗）   P03 回饋音效
+ P04 聲音分析（麥克風）  P05 聲音比對  P06 合成聲音庫（示範聲音）
+ P07 地圖與移動        P08 任務提示、進度    P09 任務單與交流
+ P10 居民資料卡/對話   P11 聲音交流         P12 畫面切換
+ P13 收聲音畫面        P14 給小鳥聲音         P15 聲音種子（口袋、種花）
+ P16 聲音卡頁          P17 結局與離場卡（結算→離場→再玩一次）
+ P18 說明頁（教學 4 頁）P19 組裝（開始一輪 startRound）
+ P20 連到伺服器（加入、位置、重置偵測 epoch）P21 意外跳出接回進度
+ P22 模擬發聲點        P23 換線索             P24 3D 小鎮畫面（iframe、方向鍵、說話按鈕）
+ P25 新一輪重置（清種子、清 3D 小鎮）  P26 對話點擊（讓 3D 小鎮對話可以點）
+ P27 3D 小鎮對話卡（底部對話卡＋繼續按鈕）
+ P28 探測器＋調頻（找聲音→調頻→收成種子；提示條、箭頭）  難度在 sound_spots.json 的 tune
+ P28c 探測器音效（掃描嘀聲／偵測到叮叮叮／靠近確認聲：dtScan、dtFound、dtTone）
+ P28b 操作提示（coachTick：依進度在小鎮畫面提示下一步）  CONFIG.hideMicListen＝隱藏舊「收聲音」
+ P06b 降頻聲／說不清的聲音（down1–3、odd1–2 合成音）
+═══════════════════════════════════════════════════════════════════
+-->
+<html><head><meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head><body>
+<title>Tune In｜聲音小鎮</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="css/play.css?v=26"><link rel="preload" href="fonts/jf-sub2.woff2?v=1" as="font" type="font/woff2" crossorigin>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-lamp" viewBox="0 0 40 40"><circle cx="20" cy="15" r="10" fill="#fff"/><path d="M20 27v8M14 36h12" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M16 14a4.5 4.5 0 0 1 4-4" stroke="var(--ink)" stroke-width="2.4" stroke-linecap="round" fill="none"/></symbol>
+    <symbol id="i-door" viewBox="0 0 40 40"><path d="M9 37V19a11 11 0 0 1 22 0v18z" fill="#fff"/><path d="M15 37V20a5 5 0 0 1 10 0v17" stroke="var(--ink)" stroke-width="2.6" stroke-linecap="round" fill="none"/><circle cx="22.5" cy="29" r="1.8" fill="var(--ink)"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="#fff"/><path d="M20 10v10l6 4" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-water" viewBox="0 0 40 40"><path d="M20 4C27 14 31 20 31 26a11 11 0 0 1-22 0c0-6 4-12 11-22z" fill="#fff"/><path d="M14 27q2.5 4 6 3" stroke="var(--ink)" stroke-width="2.6" stroke-linecap="round" fill="none"/></symbol>
+    <symbol id="i-sprite" viewBox="0 0 40 33"><rect x="18.7" y="4.6" width="2.5" height="4.6" fill="#3F3A40"/><circle cx="19.9" cy="3" r="2.6" fill="#fff" stroke="#3F3A40" stroke-opacity=".45" stroke-width=".7"/><ellipse cx="5.2" cy="14.6" rx="2.1" ry="4.6" transform="rotate(8 5.2 14.6)" fill="#000" opacity=".22"/><ellipse cx="34.8" cy="14.6" rx="2.1" ry="4.6" transform="rotate(-8 34.8 14.6)" fill="#000" opacity=".22"/><path d="M20 8.2c9.5 0 13.5 4.3 13.5 11.6C33.5 28 29.600 33 20 33S6.500 28 6.500 19.800C6.500 12.500 10.500 8.200 20 8.200z" fill="currentColor"/><path d="M8.700 8.600l3.200 1.200-.9 3.200L6.800 20.800 4.300 19.600 6.500 12z" fill="#fff" opacity=".4"/><path d="M31.300 8.600l-3.200 1.200.9 3.200 4.200 7.800 2.500-1.200L33.500 12z" fill="#fff" opacity=".4"/><rect x="14.900" y="11.800" width="10.900" height="2.400" rx="1.100" fill="#000"/><ellipse cx="17" cy="17.100" rx="3" ry="3.200" fill="#fff"/><ellipse cx="23" cy="16.900" rx="3" ry="3.200" fill="#fff"/><ellipse cx="16.700" cy="17.200" rx="1.600" ry="1.200" fill="#000"/><ellipse cx="23.300" cy="17" rx="1.600" ry="1.200" fill="#000"/></symbol>
+    <symbol id="i-ping" viewBox="0 0 48 40"><ellipse cx="8" cy="24" rx="7.200" ry="12" transform="rotate(8 8 24)" fill="#F0A6BA"/><ellipse cx="40" cy="24" rx="7.200" ry="12" transform="rotate(-8 40 24)" fill="#F0A6BA"/><path d="M24 12c10 0 13 5 13 12s-3 12-13 12-13-5-13-12 3-12 13-12z" fill="#F8C3D0"/><circle cx="19.500" cy="22" r="3.200" fill="#EA4B5A"/><ellipse cx="19.500" cy="22" rx="1.800" ry="1.400" fill="#fff"/><circle cx="28.500" cy="22" r="3.200" fill="#EA4B5A"/><ellipse cx="28.500" cy="22" rx="1.800" ry="1.400" fill="#fff"/><path d="M22.800 21.200l2.400 2.200M25.200 21.200l-2.400 2.200" stroke="#EA4B5A" stroke-width="1.100" stroke-linecap="round"/><circle cx="21.200" cy="17.600" r=".9" fill="#7CCCE0"/><circle cx="26.800" cy="17.600" r=".9" fill="#7CCCE0"/><ellipse cx="24" cy="10.400" rx="9" ry="4.800" fill="#E53E2E"/><rect x="15.500" y="11.800" width="17" height="3.200" rx="1.600" fill="#F3F0EC"/><circle cx="24" cy="5.200" r="1.800" fill="#E8E4E0"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" fill="none"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="i-cards" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="4" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M8 13q2 3 4 0t4 0" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 16 16"><path d="M3 8h9M8.5 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <header class="top" id="top" hidden>
+    <button class="icon-btn" id="btnBack" type="button" aria-label="回小鎮" hidden><svg aria-hidden="true"><use href="#i-back"/></svg></button>
+    <div class="brand" id="brand"><svg aria-hidden="true"><use href="#i-ping"/></svg><span class="bn">Tune In<small>聲音小鎮</small></span></div>
+    <h1 class="ttl" id="ttl" hidden>你的聲音卡</h1>
+    <div class="mychip" id="myName" hidden><i></i><b></b></div>
+    <div class="chip num" id="chip"><span id="chipText">剩 4:10</span></div>
+    <button class="icon-btn" id="btnCards" type="button" aria-label="我的聲音卡"><svg aria-hidden="true"><use href="#i-cards"/></svg><span class="badge num" id="cardCount" hidden>0</span></button>
+  </header>
+
+  <main id="main">
+    <section id="s-join" class="join">
+      <div class="jpage" id="jp1">
+        <div class="join-top">
+        <div class="scene">
+          <svg viewBox="0 0 320 150" role="img" aria-label="小鎮停住了：四個地點都安靜著，一隻 Blip 閉著眼睛在中間">
+            <ellipse cx="160" cy="118" rx="150" ry="30" fill="var(--t-house)"/>
+            <g opacity=".6">
+              <g transform="translate(46 84)"><circle r="22" fill="var(--h-flower)"/><use href="#i-lamp" x="-15" y="-15" width="30" height="30"/><text class="zz" x="14" y="-22">z</text></g>
+              <g transform="translate(104 44)"><circle r="22" fill="var(--h-house)"/><use href="#i-door" x="-15" y="-15" width="30" height="30"/><text class="zz" x="14" y="-22" style="animation-delay:-.7s">z</text></g>
+              <g transform="translate(216 44)"><circle r="22" fill="var(--h-market)"/><use href="#i-bell" x="-15" y="-15" width="30" height="30"/><text class="zz" x="14" y="-22" style="animation-delay:-1.4s">z</text></g>
+              <g transform="translate(274 84)"><circle r="22" fill="var(--h-river)"/><use href="#i-water" x="-15" y="-15" width="30" height="30"/><text class="zz" x="14" y="-22" style="animation-delay:-2.1s">z</text></g>
+            </g>
+            <g transform="translate(160 88)"><g class="fl c"><use href="#i-ping" x="-40" y="-40" width="80" height="80"/></g></g>
+            <g fill="none" stroke="var(--ink)" stroke-width="2" opacity=".5"><circle cx="86" cy="118" r="4"/><circle cx="238" cy="120" r="3"/><circle cx="160" cy="26" r="3"/></g>
+          </svg>
+        </div>
+          <h1 class="hero">Tune In</h1>
+          <p class="hero-sub">聲音小鎮</p>
+        </div>
+        <div class="join-bottom">
+          <div class="dots" aria-hidden="true"><i class="on"></i><i></i></div>
+          <button class="btn btn-ink btn-block" id="btnNext" type="button">下一頁</button>
+        </div>
+      </div>
+      <div class="jpage" id="jp2" hidden>
+        <div class="join-top how-top">
+          <button class="icon-btn jprev" id="btnPrev" type="button" aria-label="上一頁"><svg aria-hidden="true"><use href="#i-back"/></svg></button>
+          <h2 class="how-h">做一隻你的 Ping</h2>
+          <ol class="how">
+            <li><span class="hn" style="background:var(--h-flower)">1</span><div><b>找居民聊聊</b><span>走到居民旁邊，按 ▲ 問他想聽什麼聲音</span></div></li>
+            <li><span class="hn" style="background:var(--h-house)">2</span><div><b>收聲音</b><span>走到會唱歌的花旁邊，停住不動，聽清楚就收下</span></div></li>
+            <li><span class="hn" style="background:var(--h-market)">3</span><div><b>種花</b><span>回小鎮按「種花」，居民聽到了，小鎮就熱鬧了</span></div></li>
+          </ol>
+        </div>
+        <div class="join-bottom">
+          <div class="pcust">
+            <div class="pvbox"><canvas id="pvCv" width="512" height="512" role="img" aria-label="你的 Ping 長這樣"></canvas></div>
+            <label class="pname"><span>名字</span><input id="pnm" type="text" maxlength="6" placeholder="取個名字（最多 6 字）" autocomplete="off" enterkeyhint="done"><small id="pnmCnt">0/6</small></label>
+            <div class="swr" id="swr" role="group" aria-label="挑一個顏色"></div>
+            <div class="ccol"><span>顏色</span><input type="range" id="ccH" min="0" max="360" value="340" aria-label="Ping 顏色"></div>
+            <div class="ccol"><span>深淺</span><input type="range" id="ccD" min="0" max="70" value="30" class="dep" aria-label="顏色深淺"><i id="ccDot"></i></div>
+            
+          </div>
+          <p class="cap">建議戴耳機，聲音比較聽得清楚</p>
+          <label class="consent"><input type="checkbox" id="consent"><span>讓 Ping 聽聽身邊的聲音</span></label>
+          <button class="btn btn-ink btn-block" id="btnJoin" type="button" disabled>開始</button>
+          <div class="jlinks"><button class="btn-text" id="btnSkip" type="button">跳過，直接進小鎮</button></div>
+          <p class="cap" id="joinHint">約 6 分鐘，錄音展後刪除</p>
+          
+        </div>
+      </div>
+    </section>
+
+    <section id="s-teach" hidden></section>
+    <section id="s-mic" hidden></section>
+
+    <section id="s-explore" hidden>
+      <div class="guide" id="guide"></div>
+      <div class="map" id="mapWrap"></div>
+      <div class="card prog" id="prog"></div>
+      <div class="card act" id="act"></div>
+      <div class="card tw" id="tw"></div>
+      <details class="proto">
+        <summary>試用版工具</summary>
+        <div class="row">
+          <button class="btn btn-soft" id="pSettle" type="button">跳到這一輪</button>
+          <button class="btn btn-soft" id="pClues" type="button">居民的話：只看自己的</button>
+          <button class="btn btn-soft" id="pTol" type="button">對準範圍：中</button>
+          <button class="btn btn-soft" id="pMic" type="button">收音和聲音測試</button>
+          <button class="btn btn-soft" id="pRound" type="button">輪次：第 1 輪</button>
+          <button class="btn btn-soft" data-err="mic" type="button">出狀況：麥克風</button>
+          <button class="btn btn-soft" data-err="noisy" type="button">出狀況：聲音太多</button>
+          <button class="btn btn-soft" data-err="offline" type="button">出狀況：斷線</button>
+        </div>
+      </details>
+    </section>
+
+    <section id="s-cards" hidden>
+      <div id="specs" style="display:grid;gap:12px"></div>
+    </section>
+  </main>
+
+  <div class="dockbar" id="dockbar" hidden><p class="dock-tip" id="dockTip"></p><button class="btn btn-ink btn-block" id="btnMain" type="button">停下來聽</button></div>
+</div>
+
+<section id="s-listen" class="dark" hidden aria-label="收聲音"></section>
+
+<section id="s-settle" class="dark" hidden aria-label="這一輪">
+  <div class="inner">
+    <div class="sum">
+      <p class="eyebrow" id="stRound"></p>
+      <h2 id="stAll">這一輪，大家聽了 0 次</h2>
+      <div class="tiles" id="stTiles"></div>
+      <p class="sline" id="stLine"></p>
+      <div id="stMine" hidden style="display:grid;gap:8px"><p class="big" id="stMineT"></p><p class="sline" id="stTop"></p></div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="prog2" id="stProg" style="width:100%"><i></i></div>
+    <p class="cap" id="stCount"></p>
+    <button class="btn-text" id="stCards" type="button" hidden>看我的離場卡</button>
+  </div>
+</section>
+
+<section id="s-leave" class="dark" hidden aria-label="你的離場卡">
+  <div class="inner">
+    <div class="lvbox">
+      <p class="lvey">離場卡</p>
+      <div class="lvhero"><svg aria-hidden="true"><use href="#i-ping"/></svg></div>
+      <h2 id="lvName"></h2>
+      <p class="lvsub" id="lvLine"></p>
+      <div id="lvLittle" class="lvgrid"></div>
+      <div id="lvSounds" class="lvsnd"></div>
+    </div>
+  </div>
+  <div class="foot">
+    <p class="lvnote">展覽後會給你連結，可帶回家聽，也可刪掉</p>
+    <button class="btn btn-ink" id="lvHome" type="button">帶回家聽</button>
+    <button class="btn-text" id="lvAgain" type="button">再玩一次</button>
+  </div>
+</section>
+
+<section id="s-error" class="dark" hidden aria-label="提示">
+  <div class="inner">
+    <div class="err">
+      <svg viewBox="0 0 120 120" aria-hidden="true"><use href="#i-ping" x="10" y="14" width="100" height="100"/></svg>
+      <h2 id="errT"></h2>
+      <p class="cap" id="errS"></p>
+    </div>
+  </div>
+  <div class="foot">
+    <button class="btn btn-ink" id="errMain" type="button"></button>
+    <button class="btn-text" id="errSub" type="button" hidden></button>
+  </div>
+</section>
+
+<div id="res" class="res" hidden><div class="res-card" id="resCard"></div></div>
+<div id="sheet" class="sheetwrap" hidden><div class="sheet" id="sheetBody" role="dialog" aria-modal="true"></div></div>
+<div id="toast" class="toast" hidden role="status"></div>
+<div id="banner" class="banner" hidden role="status"></div>
+<div id="fx" aria-hidden="true"></div>
+<div id="live" class="sr" aria-live="polite"></div>
+
+<script>try{if('serviceWorker' in navigator)navigator.serviceWorker.register('/tunein/sw.js',{scope:'/tunein/'}).catch(function(){})}catch(e){}</script>
+<script>try{var __o=JSON.parse(localStorage.getItem('tunein.sess')||'null');if(__o&&__o.pid&&__o.roundEnd-Date.now()>3000)document.documentElement.classList.add('resuming')}catch(e){}</script>
+<script src="js/match.js?v=1"></script>
+<script src="config.js"></script>
+<script src="js/play.main.js?v=39"></script>
+
+
+
+
+
+
+
+<script src="js/name-counter.js?v=1"></script>
+<script src="js/color-swatches.js?v=1"></script>
+
+
+
+
+
+<div id="lsOv" hidden style="position:fixed;inset:0;z-index:90;background:#FFF6BE"><iframe id="lsFr" title="收聲音" allow="microphone; autoplay" style="width:100%;height:100%;border:0;display:block"></iframe></div>
+
+
+
+
+
+</body></html>
