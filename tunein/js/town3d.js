@@ -59,7 +59,7 @@ vec3 uNeutral(vec3 c){
   float g = 1. - 1./(.15*(peak - np) + 1.); return mix(c, vec3(np), g);
 }
 vec3 uGrade(vec3 c){
-  { float l0 = uLum(c); c = mix(vec3(l0), c, 1. + uWxSat); c *= 1. + uWxTint; c = mix(c, vec3(.8,.84,.85), uWxLift) * (1. - uWxDim*.3); }   // [W03] 天氣：飽和／色偏／霧白／變暗（預設 0＝不變）
+  { float l0 = uLum(c); c = mix(vec3(l0), c, 1. + uWxSat); c *= 1. + uWxTint; c = mix(c, vec3(.8,.84,.85), uWxLift) * (1. - uWxDim*.5); }   // [W03] 天氣：飽和／色偏／霧白／變暗（預設 0＝不變）
   c = max(c, vec3(0.)) * exp2(.05) * vec3(1.03, 1., .965);
   c = .18 * pow(max(c, vec3(1e-4))/.18, vec3(1.18));
   float l = uLum(c); c = max(vec3(l) + (c - vec3(l))*1.14, vec3(0.));
@@ -1039,12 +1039,12 @@ function rainTrigger() { if (!RAIN.mesh) return; RAIN.on = true; RAIN.t0 = perfo
 /* [W03] 天氣（伺服器給 kind：clear／partly／cloud／fog／rain／wind＋lv 強度）：每種天氣各有自己的光線、天空、色調與動態，數值慢慢漸變。測試：town3d.html?wx=rain&lv=1 */
 const WX_BASE = { sun: SUN_COL.clone(), ambU: UN.uAmbU.value.clone(), ambM: UN.uAmbM.value.clone(), ambD: UN.uAmbD.value.clone() };
 const WX_PROF = {   // dim 變暗／sat 飽和度／tint 色偏／lift 霧白／sun 太陽強度(倍)／amb 環境光(倍)／cl 雲量門檻(越低雲越多)／wind 風／rain 雨／fog 霧罩／cs 雲速
-  clear:  { dim: 0,   sat: 1,   tint: [1, 1, 1],         lift: 0,   sun: 1,    amb: 1,    cl: .66, wind: .1,  rain: 0, fog: 0, cs: 1, top: C(.361, .678, .922), mid: C(.725, .867, .933), hor: C(.894, .945, .937) },
-  partly: { dim: .1,  sat: 1.02, tint: [1, 1, 1],        lift: .02, sun: .8,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.42, .66, .88), mid: C(.74, .85, .91), hor: C(.88, .93, .93) },
+  clear:  { dim: .1,  sat: 1,   tint: [1, 1, 1],         lift: 0,   sun: 1,    amb: 1,    cl: .66, wind: .1,  rain: 0, fog: 0, cs: 1, top: C(.361, .678, .922), mid: C(.725, .867, .933), hor: C(.894, .945, .937) },
+  partly: { dim: .2,  sat: 1.02, tint: [1, 1, 1],        lift: .02, sun: .8,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.42, .66, .88), mid: C(.74, .85, .91), hor: C(.88, .93, .93) },
   cloud:  { dim: .35, sat: .75, tint: [-.03, -.01, .02], lift: .08, sun: .45,  amb: 1.12, cl: .34, wind: .15, rain: 0, fog: 0, cs: 1, top: C(.58, .65, .72), mid: C(.74, .79, .83), hor: C(.84, .87, .88) },
   fog:    { dim: .2,  sat: .55, tint: [0, .01, .02],     lift: .3,  sun: .35,  amb: 1.2,  cl: .3,  wind: 0,   rain: 0, fog: 1, cs: .4, top: C(.76, .81, .83), mid: C(.83, .87, .88), hor: C(.9, .93, .93) },
   rain:   { dim: .55, sat: .68, tint: [-.12, -.05, .08], lift: .05, sun: .28,  amb: .95,  cl: .3,  wind: .45, rain: 1, fog: 0, cs: 2, top: C(.4, .47, .56), mid: C(.55, .62, .68), hor: C(.7, .76, .79) },
-  wind:   { dim: 0,   sat: 1.12, tint: [-.01, .02, .04], lift: 0,   sun: 1.1,  amb: 1,    cl: .6,  wind: 1,   rain: 0, fog: 0, cs: 5, top: C(.3, .64, .95), mid: C(.68, .86, .95), hor: C(.86, .94, .95) }
+  wind:   { dim: .1,  sat: 1.12, tint: [-.01, .02, .04], lift: 0,   sun: 1.1,  amb: 1,    cl: .6,  wind: 1,   rain: 0, fog: 0, cs: 5, top: C(.3, .64, .95), mid: C(.68, .86, .95), hor: C(.86, .94, .95) }
 };
 const WEA = { kind: 'clear', lv: 1, snd: false, cx: 0, cur: null, tgt: null };
 function wxTarget(k, lv) {   // 強度 lv 調整：雨越大越暗越灰、風越強雲越快
