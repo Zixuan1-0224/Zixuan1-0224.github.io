@@ -990,9 +990,10 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   });
   const LVF = [1, .78, .57];   // 小鎮越熱鬧，越難靜下來聽：收聲音的累積速度 100% / 78% / 57%
   /* [P29] 小鎮熱鬧度條（和 Unity 公用螢幕上方那條一樣：奶油底、「小鎮 熱鬧起來」、粉色進度），放在 3D 畫面右上角、計時鈕下方（不擋左上角的名字和 Blip 說的話） */
-  let GP = null, gpEl = null;
+  let GP = null, gpEl = null, gpLv = -1, gpT = 0;
   function gardenPill() {
-    try { const show = U.m === 1 && S.started && !S.ended && GP && !DETS.on && !document.body.classList.contains('tut') && $('#lsOv') && $('#lsOv').hidden;
+    try { if (GP && (GP.lv | 0) !== gpLv) { gpLv = GP.lv | 0; gpT = Date.now(); }   /* [P91] 熱鬧度膠囊只在剛進來／等級改變後出現 6 秒，平常不佔畫面 */
+      const show = U.m === 1 && S.started && !S.ended && GP && Date.now() - gpT < 6000 && !DETS.on && !document.body.classList.contains('tut') && $('#lsOv') && $('#lsOv').hidden;
       if (!gpEl) { gpEl = document.createElement('div'); gpEl.className = 'sdx-gp'; gpEl.innerHTML = '<b></b><i><u></u></i>'; document.body.appendChild(gpEl); }
       gpEl.hidden = !show; if (!show) return; const lv = GP.lv | 0; gpEl.firstChild.textContent = '小鎮 ' + (lv >= 2 ? '好熱鬧' : lv === 1 ? '熱鬧起來' : '靜悄悄'); gpEl.querySelector('u').style.width = Math.max(4, Math.min(100, GP.loud || 0)) + '%';
       const f = $('#uFrame'), r = f && !f.hidden ? f.getBoundingClientRect() : null; if (r && r.width > 40) { gpEl.style.left = 'auto'; gpEl.style.transform = 'none'; gpEl.style.right = (innerWidth - r.right + 12) + 'px'; gpEl.style.top = (r.top + 62) + 'px'; } } catch (e) {}
@@ -1303,7 +1304,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=106&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=110&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1440,6 +1441,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function detHint() {
     if (!DETS.on || TN.on) return; const I = DETS.info, el = spotHintEl || (spotHint(true, ''), spotHintEl);
     if (I && I.left <= 0 && document.body.classList.contains('tut')) { el.classList.remove('show'); return; }   /* 教學中聲音收完了就不顯示「聲音都收完了」 */
+    if (document.body.classList.contains('tut') && DETS.near) { el.classList.remove('show'); return; }   /* [P92] 教學中走到圈圈旁，只留一個提示（不要和「出現聲音點了」疊在一起） */
     let txt, ang = null, ok = false;   // [P37/P39] 方向＋距離分兩行（大／小）；這個聽法沒有聲音時，直接說換聽法
     if (!I) txt = '<b>正在聽…</b>'; else if (I.left <= 0) txt = '<b>' + (I.locked > 0 ? '去問問居民' : '聲音都收完了') + '</b>'; else if (I.d < 0) txt = '<b>' + BANDS[DETS.band] + '：這裡沒有聲音</b><i>換一種聽法試試</i>'; else {
       const a = Math.abs(I.ang), side = I.ang >= 0 ? '右' : '左'; ang = I.ang; ok = a < .35;
@@ -1478,7 +1480,17 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; fcAct(b.getAttribute('data-a'), b.getAttribute('data-k')); }); return (FC.el = el); }
   function fcPlace() { const f = $('#uFrame'), el = FC.el; if (!f || !el) return; const r = f.getBoundingClientRect(); if (r.width < 40) return; el.style.left = (r.left + 16) + 'px'; el.style.width = (r.width - 32) + 'px'; el.style.bottom = 'auto'; el.style.top = Math.round(r.top + 104) + 'px'; }   /* [P89] 小卡放畫面上方（原本在下方會蓋住 Ping 與方向鍵）：熱鬧度膠囊下方、不擋角色 */
   function fcRender() {
-    const el = fcEl(), c = FC.cur; if (!c || c.id < 0 || !fcOk()) { el.hidden = true; return; }
+    const el = fcEl(), c = FC.cur; if (!c || c.id < 0 || !fcOk()) { if (!c || c.id < 0) { FC.t0 = 0; FC.id0 = null; FC.gone = false; } el.hidden = true; return; }
+    { const tn = Date.now();   /* [P91] 一次只出現一個提示：走近停 1.2 秒才出小卡、自己的花 7 秒後自動收起（走開再回來才會再出現）、走動中不跳出來 */
+      if (FC.id0 !== c.id) { FC.t0 = tn; FC.id0 = c.id; FC.gone = false; FC.open = null; }
+      if (FC.gone) { el.hidden = true; return; }
+      if (tn - FC.t0 < 300) { el.hidden = true; clearTimeout(FC.tm); FC.tm = setTimeout(fcRender, 350 - (tn - FC.t0)); return; }   /* [P92] ToolTip：靠近 0.3 秒自動跳出一行短提示，點一下才展開操作 */
+      if (FC.open !== c.id) {
+        if (tn - FC.t0 > 4300) { FC.gone = true; el.hidden = true; return; } clearTimeout(FC.tm); FC.tm = setTimeout(fcRender, 4350 - (tn - FC.t0));
+        const tt = c.mine ? '我的聲音花' : (c.nm ? c.nm + ' 的聲音花' : '別人的聲音花'), h1 = '<button type="button" class="fcTip" data-a="open"><b>' + tt + '</b><span>點一下，看看能做什麼</span></button>';
+        if (el.getAttribute('data-h') !== h1) { el.setAttribute('data-h', h1); el.innerHTML = h1; } el.classList.add('tip'); fcPlace(); el.hidden = false; return; }
+      el.classList.remove('tip'); if (!FC.openT) FC.openT = tn;
+      if (c.mine && !FC.ask) { if (tn - FC.openT > 8000) { FC.gone = true; FC.openT = 0; el.hidden = true; return; } clearTimeout(FC.tm); FC.tm = setTimeout(fcRender, 8100 - (tn - FC.openT)); } }
     let h;
     if (c.mine) {
       const pubNow = c.pub !== 0, a1 = FC.ask === 'pub', a2 = FC.ask === 'del', rx = c.rx || {}, tot = (rx.l || 0) + (rx.f || 0) + (rx.w || 0);
@@ -1493,7 +1505,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     fcPlace(); el.hidden = false;
   }
   async function fcAct(a, k) {
-    const c = FC.cur; if (!c || !NET.on || !NET.joined) return; const now = Date.now();
+    const c = FC.cur; if (a === 'open') { if (c) { FC.open = c.id; FC.openT = 0; fcRender(); } return; } if (!c || !NET.on || !NET.joined) return; const now = Date.now();
     if (a === 'rx') { const j = await netPost('/react', { pid: NET.pid, id: c.id, k }); if (j && j.ok) { FC.rx[c.id] = k; c.rx = j.rx; toast('收到你的回應了', '', 1600); } else toast('這朵花現在不能回應', 'warn', 1800); fcRender(); return; }
     if (a === 'pub') { if (FC.ask !== 'pub') { FC.ask = 'pub'; FC.askT = now; fcRender(); return; } FC.ask = ''; const j = await netPost('/plantpub', { pid: NET.pid, id: c.id, pub: 1 }); if (j && j.ok) { c.pub = 1; toast('公開了，其他人走近就能聽到', '', 2200); } else toast('沒有成功，再試一次', 'warn', 2000); fcRender(); return; }
     if (a === 'priv') { const j = await netPost('/plantpub', { pid: NET.pid, id: c.id, pub: 0 }); if (j && j.ok) { c.pub = 0; c.rx = { l: 0, f: 0, w: 0 }; toast('設成私人了', '', 1800); } else toast('沒有成功，再試一次', 'warn', 2000); fcRender(); return; }
@@ -1752,7 +1764,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function tutTick() {
     try {
       const act = tutActive(); document.body.classList.toggle('tut', act);
-      if (!act) { if (S.started && TUTO.go < 40) { TUTO.go++; toTown({ tunein: 'appearGo' }); } if (TUTO.on) { TUTO.on = false; tutModal(null); } tutCoach(null); document.body.removeAttribute('data-tut'); return; }
+      if (!act) { if (S.started && TUTO.go < 40) { TUTO.go++; toTown({ tunein: 'appearGo' }); } if (TUTO.on) { TUTO.on = false; tutModal(null); } tutCoach(null); splTick(-1); document.body.removeAttribute('data-tut'); return; }
       if (!TUTO.on) { TUTO.on = true; TUTO.ack = 0; }
       if (TUTO.ack < 40 && S.tutHi) { TUTO.ack++; toTown({ tunein: 'tut', on: true }); }   // 小鎮還沒載好時重送，直到它回報 tutState
       const n = seedsGet().length; if (n > 0) S.tutHad = true;
@@ -1760,10 +1772,31 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       let i = tutIdx();
       if (i === 1 && CTL.fwd > 0) { TUTO.mvT += .3; if (TUTO.mvT >= 2) { S.tutMv = true; i = tutIdx(); } }
       document.body.setAttribute('data-tut', String(i));
-      tutModal(i === 0 || (i === 6 && !CINE.on && Date.now() - TUTO.plAt > 2800) ? i : null);   /* 完成卡等小鳥事件播完才出現 */ tutCoach(i); birdMark(i === 5 && !CINE.on); renderGuide(); placeTalk();
+      tutModal(i === 0 || (i === 6 && !CINE.on && Date.now() - TUTO.plAt > 2800) ? i : null);   /* 完成卡等小鳥事件播完才出現 */ tutCoach(i); birdMark(i === 5 && !CINE.on); renderGuide(); placeTalk(); splTick(i);
+    } catch (e) {}
+  }
+
+  /* ═════════ [P92] 教學引導三機制：Spotlight（背景壓暗 70%、只亮目前的按鈕）／Guided Action（挖洞以外全鎖，做完才進下一步）／ToolTip（見 fcRender：靠近 0.3 秒跳短提示） ═════════ */
+  const SPL = { dim: null, ring: null };
+  function splEls() {
+    if (SPL.dim) return; const d = document.createElement('div'); d.id = 'sp92'; d.hidden = true; const r = document.createElement('div'); r.id = 'sp92r'; r.hidden = true; r.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(d); document.body.appendChild(r); SPL.dim = d; SPL.ring = r;
+  }
+  function splTick(i) {
+    try {
+      splEls(); const f = $('#uFrame'), fr = f && !f.hidden ? f.getBoundingClientRect() : null; let box = null, dim = false;
+      if (i === 1 && fr && fr.width > 40) { box = { l: fr.left + 6, t: fr.bottom - 120, w: fr.width - 12, h: 112 }; dim = !(TUTO.mvT > 0 || S.tutMv); }   /* 走走看：方向鍵區；一開始走動就放亮 */
+      else if (i === 2) { const b = $('#btnDet'); if (b && !b.hidden) { const r = b.getBoundingClientRect(); if (r.width > 20) { box = { l: r.left, t: r.top, w: r.width, h: r.height }; dim = true; } } }
+      else if (i === 5) { const b = document.querySelector('.sdx-go.big'); if (b) { const r = b.getBoundingClientRect(); if (r.width > 20) box = { l: r.left, t: r.top, w: r.width, h: r.height }; } }   /* 種花：只圈出按鈕，不壓暗（還要走路） */
+      document.body.classList.toggle('lock', i >= 1 && i <= 5);   /* Guided Action：上方卡片按鈕先鎖住 */
+      if (!box || CINE.on) { SPL.dim.hidden = true; SPL.ring.hidden = true; return; }
+      const P = 8, x1 = Math.max(0, box.l - P), y1 = Math.max(0, box.t - P), x2 = box.l + box.w + P, y2 = box.t + box.h + P;
+      SPL.ring.style.cssText = 'left:' + x1 + 'px;top:' + y1 + 'px;width:' + (x2 - x1) + 'px;height:' + (y2 - y1) + 'px'; SPL.ring.hidden = false;
+      if (dim) { SPL.dim.style.clipPath = 'polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,' + x1 + 'px ' + y1 + 'px,' + x1 + 'px ' + y2 + 'px,' + x2 + 'px ' + y2 + 'px,' + x2 + 'px ' + y1 + 'px,' + x1 + 'px ' + y1 + 'px)'; SPL.dim.hidden = false; } else SPL.dim.hidden = true;
     } catch (e) {}
   }
   setInterval(tutTick, 300);
+  window.addEventListener('resize', () => { try { splTick(tutActive() ? tutIdx() : -1); } catch (e) {} });
   /* [P47] 歡迎音樂（只在網頁）：加入頁＋歡迎卡時循環播放，按「開始」進教學就淡出；瀏覽器要先有一次點擊才能出聲 */
   const BGM_ID = Math.random().toString(36).slice(2), BGM_KEY = 'tunein.bgm';
   function bgmOwn() {

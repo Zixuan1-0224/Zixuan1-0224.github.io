@@ -1606,3 +1606,17 @@ body.ufull .dockbar:has(>#btnMain[hidden]) #btnDet,body.ufull .dockbar:has(>#btn
 #btnDet.sdx-det:active{transform:translateY(3px);box-shadow:0 1px 0 #3E2A5A}
 #btnDet.sdx-det:disabled{background:#E7DFF3;color:#3E2A5A;opacity:1}
 body.ufull .chip{border:2px solid #3E2A5A;box-shadow:0 2px 0 #3E2A5A;background:#FFFCEB;color:#3E2A5A;font-weight:800}
+
+/* [P92] 教學引導：Spotlight／Guided Action／ToolTip */
+#sp92{position:fixed;inset:0;z-index:80;background:rgba(20,10,35,.7);animation:sp92in .25s ease}
+#sp92[hidden],#sp92r[hidden]{display:none}
+#sp92r{position:fixed;z-index:81;pointer-events:none;box-sizing:border-box;border:3px solid #EDE986;border-radius:20px;box-shadow:0 0 0 3px #3E2A5A,0 0 20px rgba(237,233,134,.85);animation:sp92p 1.3s ease-in-out infinite}
+@keyframes sp92in{from{opacity:0}to{opacity:1}}
+@keyframes sp92p{50%{transform:scale(1.035)}}
+@media (prefers-reduced-motion:reduce){#sp92,#sp92r{animation:none}}
+.sdx-co{z-index:85 !important}
+body.lock .guide button,body.lock #btnCards,body.lock #btnBack{pointer-events:none;opacity:.4}
+#flwCard.tip{padding:0;border:0;background:transparent;box-shadow:none;width:auto !important;left:50% !important;transform:translateX(-50%)}
+#flwCard .fcTip{display:flex;flex-direction:column;gap:2px;min-height:44px;padding:8px 16px;border:2px solid #3E2A5A;border-radius:16px;background:#FFFCEB;color:#3E2A5A;font:inherit;text-align:center;box-shadow:0 3px 0 #E7BEF8;cursor:pointer;touch-action:manipulation}
+#flwCard .fcTip b{font-size:16px;line-height:1.3}
+#flwCard .fcTip span{font-size:14px;line-height:1.3;opacity:.8}
