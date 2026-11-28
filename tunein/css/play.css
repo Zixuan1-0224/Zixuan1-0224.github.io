@@ -1650,3 +1650,7 @@ body.ufull #t3talk{min-height:44px;padding:0 18px;font-size:15px;box-shadow:0 3p
 
 #verTag{position:fixed;left:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 4px);z-index:1;font:700 12px/1 var(--font-body,sans-serif);color:#3E2A5A;opacity:.35;pointer-events:none}
 body:not([data-screen="join"]) #verTag{display:none}
+
+/* [P98] 奔跑鍵 */
+#runBtn{position:fixed;z-index:6;width:56px;height:56px;border-radius:50%;border:3px solid #3E2A5A;background:#FFFCEB;box-shadow:0 3px 0 #E7BEF8;color:#3E2A5A;font:700 18px/1 inherit;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#runBtn[hidden]{display:none}#runBtn.on{background:#F2619C;color:#fff;box-shadow:0 3px 0 #3E2A5A}

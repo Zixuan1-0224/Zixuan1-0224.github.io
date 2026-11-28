@@ -533,7 +533,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       if (n > 0) { t.h = '種花'; t.p = '按「種花」'; return t; }
       const I = DETS.info;
       if (DETS.on && I && I.left <= 0 && I.locked > 0) { t.h = '找居民聊聊'; t.p = '他們知道更多聲音'; return t; }
-      if (DETS.on) { t.h = '跟著箭頭'; t.p = BANDS[DETS.band] + '中　電量用完要充電'; return t; }
+      if (DETS.on) { t.h = '跟著箭頭'; t.p = BANDS[DETS.band] + '中'; return t; }
       t.h = '找聲音'; t.p = '選聽法，再開探測器'; return t;
     } } catch (e) {}
     if (awake >= 4) { t.h = '四位居民都醒了'; t.p = '等時間到，看小鎮的結局'; return t; }
@@ -1227,9 +1227,16 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (h !== CD.h) { CD.h = h; el.innerHTML = h; el.setAttribute('aria-label', '收集進度 ' + n + '／' + CD.n); if (n > CD.last) { const on = el.querySelector('i:nth-child(' + n + ')'); if (on) { on.classList.add('pop'); } } CD.last = n; }
   }
   /* [P94] 小鎮畫面上的浮層統一排版：上排＝名字／進度點／倒數；第二排＝單一提示（方向或說話，互斥）；右側＝聽法直排；下方＝說話鈕（方向鍵上方） */
+  function runBtn() {   /* [P98] 奔跑鍵：點一下切換 走／跑（跑＝1.7 倍速），放在左側轉身鍵上方 */
+    let b = document.getElementById('runBtn');
+    if (!b) { b = document.createElement('button'); b.id = 'runBtn'; b.type = 'button'; b.className = 'runb'; b.textContent = '跑'; b.setAttribute('aria-label', '奔跑開關'); b.setAttribute('aria-pressed', 'false'); b.hidden = true; document.body.appendChild(b);
+      b.addEventListener('pointerdown', e => { e.preventDefault(); CTL.run = !CTL.run; b.classList.toggle('on', CTL.run); b.setAttribute('aria-pressed', CTL.run ? 'true' : 'false'); ctlCalc(); if (uMode === 1 || T3) ctlSend(); try { sfx.tap(); } catch (x) {} }); }
+    return b;
+  }
   function placeHud() {
     const f = $('#uFrame'); if (!f || f.hidden || !document.body.classList.contains('ufull')) return; const r = f.getBoundingClientRect(); if (r.width < 40) return;
     const dots = document.getElementById('cdots'); if (dots) { dots.style.left = (r.left + r.width / 2) + 'px'; dots.style.top = (r.top + 34) + 'px'; dots.style.right = 'auto'; }
+    { const rb = runBtn(), on = U.m === 1 && S.started && !S.ended && !bdOn && !CINE.on && !(typeof tutActive === 'function' && tutActive()); if (rb.hidden === on) rb.hidden = !on; rb.style.left = (r.left + 14) + 'px'; rb.style.top = (r.bottom - 150) + 'px'; }
     const br = document.getElementById('bandRow'); if (br) { br.style.left = 'auto'; br.style.right = Math.max(6, innerWidth - r.right + 10) + 'px'; br.style.top = (r.top + r.height * .34) + 'px'; }
     document.body.classList.toggle('talkon', !!($('#t3talk') && !$('#t3talk').hidden));
     try { placeTalk(); } catch (e) {}
@@ -1326,7 +1333,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=115&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=116&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1336,16 +1343,16 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   const DET_ON_MS = 10000, DET_COOL_MS = 12000, BANDS = ['平常聽', '放慢聽', '變調聽'];   // [P39] 探測器只能開 10 秒，之後充電 12 秒；三種聽法各聽得到不同的聲音
   function detLabel() {
     const b = $('#btnDet'); if (!b) return; const now = Date.now(), lim = S.tutDone, cool = lim && DETS.cool > now;
-    b.textContent = DETS.on ? (lim ? '探測器　' + Math.max(0, Math.ceil((DETS.until - now) / 1000)) + ' 秒' : '探測器　開') : cool ? '充電中　' + Math.ceil((DETS.cool - now) / 1000) + ' 秒' : '探測器　關';
+    b.textContent = DETS.on ? '探測器　開' : cool ? '充電中　' + Math.ceil((DETS.cool - now) / 1000) + ' 秒' : '探測器　關';
     b.disabled = !!cool && !DETS.on; b.classList.toggle('cool', !!cool && !DETS.on); b.classList.toggle('on', DETS.on);
     document.body.classList.toggle('deton', !!DETS.on); const row = $('#bandRow'); if (row) { const f0 = $('#uFrame'), r0 = f0 && !f0.hidden ? f0.getBoundingClientRect() : null; if (r0 && r0.width > 40) row.style.top = (r0.top + 58) + 'px'; const multi = !!(CODEX.cfg && CODEX.cfg.spots.some(x => x.type && x.type !== 'env')); if (!multi) DETS.band = 0; const show = multi && lim && DETS.on && U.m === 1 && S.started && !S.ended && !!CODEX.cfg;   /* [P98] 聲音點全是日常聲音時不顯示聽法切換（放慢／變調沒東西可聽，會讓人困惑） */ if (row.hidden === show) row.hidden = !show; if (show) bandIntro(); $$('#bandRow button').forEach((x, i) => x.classList.toggle('on', i === DETS.band)); }
   }
   function bandIntro() {   // [P41] 新功能說明：教學後第一次看到聽法列時跳一次（探測器電量、三種聽法、找不到就換聽法）
     try { if (localStorage.getItem('tunein.bandIntro') === '1' || BANDS.intro) return; } catch (e) {} BANDS.intro = true; const sh = $('#sheet'); if (sh && !sh.hidden) { BANDS.intro = false; return; }
-    openSheet('<div class="sh-h"><span></span><div><h2>聽法</h2></div>' + CLOSE + '</div><ul class="bandhow"><li><b>探測器開 10 秒</b><span>用完充電 12 秒</span></li><li><b>聽不到？</b><span>換一種聽法</span></li></ul><button class="btn btn-ink btn-block" type="button" id="bandOk">知道了</button>');
+    openSheet('<div class="sh-h"><span></span><div><h2>聽法</h2></div>' + CLOSE + '</div><ul class="bandhow"><li><b>探測器開著就能一直找</b><span>不用充電</span></li><li><b>聽不到？</b><span>換一種聽法</span></li></ul><button class="btn btn-ink btn-block" type="button" id="bandOk">知道了</button>');
     const b = $('#bandOk'); if (b) b.addEventListener('click', () => { try { localStorage.setItem('tunein.bandIntro', '1'); } catch (e) {} closeSheet(); });
   }
-  function detTick() { try { if (DETS.on && S.tutDone && Date.now() > DETS.until) { DETS.cool = Date.now() + DET_COOL_MS; detSet(false); toast('探測器沒電了　充電 ' + DET_COOL_MS / 1000 + ' 秒', '', 2600); } detLabel(); } catch (e) {} }
+  function detTick() { try { if (false && DETS.on && S.tutDone && Date.now() > DETS.until) { DETS.cool = Date.now() + DET_COOL_MS; detSet(false); toast('探測器沒電了　充電 ' + DET_COOL_MS / 1000 + ' 秒', '', 2600); } detLabel(); } catch (e) {} }
   function bandSet(i) { DETS.band = i; DETS.info = null; toTown({ tunein: 'band', v: i }); sfx.tap(); tnClose(); detLabel(); if (DETS.on) detHint(); }
   // [P28c] 探測器音效：開著時有「嘀…」掃描聲（越靠近聲音越密）；進入聽得到的範圍有「叮叮叮」偵測提示；靠到可調頻有確認聲。音量改 vol 參數
   function dtTone(f1, f2, vol, dur, delay) {
@@ -1508,7 +1515,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function detInit() {
     const db = $('#dockbar'), bm = $('#btnMain'); if (!db || !bm || $('#btnDet')) return;
     const b = document.createElement('button'); b.id = 'btnDet'; b.type = 'button'; b.className = 'btn btn-block sdx-det'; b.textContent = '探測器　關'; b.setAttribute('aria-pressed', 'false'); b.hidden = true;
-    bm.insertAdjacentElement('afterend', b); b.addEventListener('click', () => { if (S.tutDone && !DETS.on && DETS.cool > Date.now()) { toast('探測器充電中'); return; } sfx.tap(); detSet(!DETS.on); });
+    bm.insertAdjacentElement('afterend', b); b.addEventListener('click', () => { sfx.tap(); detSet(!DETS.on); });
     if (!$('#bandRow')) { const row = document.createElement('div'); row.id = 'bandRow'; row.className = 'bandrow'; row.hidden = true; row.setAttribute('role', 'group'); row.setAttribute('aria-label', '聽法');
       row.innerHTML = BANDS.map((n, i) => '<button type="button" data-b="' + i + '" data-s="' + n.slice(0, 2) + '" aria-label="' + n + '">' + n + '</button>').join(''); db.parentNode.insertBefore(row, db); row.addEventListener('click', e => { const x = e.target.closest('button[data-b]'); if (x) bandSet(+x.getAttribute('data-b')); }); }
   }
@@ -1679,7 +1686,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 手機方向鍵 → 伺服器 /input → Unity：這位玩家的 Ping 由 Unity 管（和鍵盤一樣：上下前後、左右轉身）。
      看 Unity 全螢幕時每 0.25 秒送一次心跳（沒按也送 0），離開時通知伺服器，並把地圖上的 Ping 放到 Unity 裡最後的位置。 */
   const CTL = { held: {}, fwd: 0, turn: 0, hb: 0, lk: Date.now() % 100000, cf: Date.now() % 100000, bk: Date.now() % 100000 };   // lk 鎖定／cf 確認／bk 返回：按一下加 1
-  function ctlCalc() { CTL.fwd = (CTL.held.f ? 1 : 0) - (CTL.held.b ? 1 : 0); CTL.turn = (CTL.held.r ? 1 : 0) - (CTL.held.l ? 1 : 0); }
+  function ctlCalc() { CTL.fwd = (CTL.held.f ? (CTL.run ? 1.7 : 1) : 0) - (CTL.held.b ? 1 : 0); CTL.turn = (CTL.held.r ? 1 : 0) - (CTL.held.l ? 1 : 0); }
   function ctlSend() {   // 網路慢時不堆請求：上一個還沒回來就先記著，回來後只送最新的按法
     if (T3) { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'ctl', fwd: CTL.fwd, turn: CTL.turn }, '*'); } catch (e) {} return; }   // Three.js 小鎮：方向鍵直接傳給畫面，不經過 Unity
     if (!NET.on || !NET.pid) return; const sg = CTL.fwd + ',' + CTL.turn + ',' + CTL.lk + CTL.cf + CTL.bk, nw = Date.now();

@@ -1266,7 +1266,7 @@ function step(dt) {
   if (typeof TK !== 'undefined' && TK.on) { me.moving = false; return; }
   const [kf, kt] = keyCtl(), f = ctl.fwd || kf, t = ctl.turn || kt;
   me.yaw += t * (CFG.turnDeg * Math.PI / 180) * dt;
-  const sp = f > 0 ? CFG.walkSpeed : f < 0 ? CFG.backSpeed : 0;
+  const sp = f > 0 ? CFG.walkSpeed * Math.min(1.7, f) : f < 0 ? CFG.backSpeed : 0;
   if (sp) {
     let nx = me.x + Math.sin(me.yaw) * sp * Math.sign(f) * dt, nz = me.z + Math.cos(me.yaw) * sp * Math.sign(f) * dt;
     const dyn = BLIP && BLIP.init && BLIP.obj.visible ? [{ x: BLIP.x, z: BLIP.z, r: CFG.blipR }] : [];   // Blip 會走動：臨時的圓形碰撞框
