@@ -67,6 +67,7 @@ vec3 uGrade(vec3 c){
   vec3 g = pow(c, vec3(1./2.2)); float t = clamp(uLum(g), 0., 1.);
   g = uSoftLight(g, mix(vec3(.5), vec3(.3098,.5608,.6510), 1.-t));
   g = uSoftLight(g, mix(vec3(.5), vec3(1.,.9020,.7098), t));
+  g = g*vec3(.70,.68,.66) + vec3(.20,.20,.17);   /* [P82] 對齊 Unity 實測：草(150,195,118)／路(223,208,153)，壓亮部、墊高暗部 */
   return pow(clamp(g, 0., 1.), vec3(2.2));
 }
 float uHash3(vec3 p){ p = fract(p*.3183099 + .1); p *= 17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
@@ -585,7 +586,7 @@ function buildWorld(L) {
   /* [P81] 房子、蘑菇：Unity 匯出 props（款式、外框中心x、底y、中心z、轉向、外框高）；依外框高縮放，不用管 FBX 匯入倍率 */
   { const PR = L.props || [], kinds = ['home1', 'home2', 'mush1', 'mush2'];
     kinds.forEach(k => { const rows = PR.filter(t => t[0] === k); if (!rows.length || !M[k]) return; const gh = modelBox(k).s.y || 1;
-      instSet(k, rows.map(t => ({ p: U(t[1], t[2], t[3]), ry: t[4] * Math.PI / 180, s: t[5] / gh })), k, true, true);
+      instSet(k, rows.map(t => ({ p: U(t[1], t[2], t[3]), ry: Math.PI - t[4] * Math.PI / 180, s: t[5] / gh })), k, true, true);
       if (k[0] === 'h') { const bs = modelBox(k).s; rows.forEach(t => { const f = t[5] / gh; colliders.push({ x: t[1], z: t[3], r: Math.max(bs.x, bs.z) * f * .35 }); }); } }); }
   if (M.bench) { instSet('bench', L.benches.map(t => ({ p: U(t[1], 0, t[3]), ry: -t[4] * Math.PI / 180, s: sc(t, MODELS.bench.s) })), 'bench', false, true);
     const bb = modelBox('bench'); L.benches.forEach(t => addBoxAsCircles(t[1], t[3], -t[4] * Math.PI / 180, sc(t, MODELS.bench.s), bb.b)); }   // 長椅：依模型真實大小，沿長邊排幾顆圓形碰撞框
