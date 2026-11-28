@@ -684,6 +684,28 @@ function updateGrass(px, pz, force) {   // px, pz：Unity 座標
 }
 
 /* ═════════ [T09] 角色 ═════════ */
+/* [P95] 種花回饋（和 Unity SoundGarden.Announce 同樣：同色漣漪＋3 秒單行署名浮字「名字 種下了 聲音名」） */
+function plantAnnounce(g, sz, p, col) {
+  const who = p.nm || '有人', snd = p.sn || p.tr || '', text = who + ' 種下了 ' + (snd || '花');
+  const c = document.createElement('canvas'), x = c.getContext('2d'); x.font = '800 36px "jf-openhuninn","PingFang TC","Microsoft JhengHei",system-ui,sans-serif';
+  const tw = Math.ceil(x.measureText(text).width) + 70, H = 76; c.width = tw + 16; c.height = H + 16; x.font = '800 36px "jf-openhuninn","PingFang TC","Microsoft JhengHei",system-ui,sans-serif';
+  x.fillStyle = '#3E2A5A'; x.beginPath(); x.roundRect(8, 14, tw, H, 38); x.fill();
+  x.fillStyle = '#FFFCEB'; x.beginPath(); x.roundRect(8, 8, tw, H, 38); x.fill();
+  x.fillStyle = '#' + col.getHexString(); x.beginPath(); x.arc(40, 8 + H / 2, 9, 0, 7); x.fill();
+  x.fillStyle = '#3E2A5A'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(text, 62, 8 + H / 2 + 2);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false })); sp.renderOrder = 11;
+  const k = .0105 * (EMBED ? 1.25 : 1); sp.scale.set(c.width * k, c.height * k, 1); sp.position.y = 1.2 * sz + 1.1; g.add(sp);
+  const rg = new THREE.Mesh(new THREE.RingGeometry(.35, .42, 40), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide })); rg.rotation.x = -Math.PI / 2; rg.position.y = .09; g.add(rg);
+  const t0 = performance.now();
+  (function tick() {
+    const a = (performance.now() - t0) / 1000;
+    if (a >= 3) { g.remove(sp); g.remove(rg); t.dispose(); sp.material.dispose(); rg.geometry.dispose(); rg.material.dispose(); return; }
+    sp.material.opacity = a < .25 ? a / .25 : a > 2.6 ? (3 - a) / .4 : 1;
+    const q = Math.min(1, a / 1.2); rg.scale.setScalar(1 + 7 * (1 - (1 - q) * (1 - q))); rg.material.opacity = .8 * (1 - q);
+    requestAnimationFrame(tick);
+  })();
+}
 function nameTag(text, bg, big) {   // 和 Unity WorldTags 一致：淡色圓角底＋深紫字＋柔影；bg＝底色（Color 或 hex）
   const lines = String(text).split('\n'), W = 360, lh = 54, H = lines.length * lh + 44, c = document.createElement('canvas'); c.width = W; c.height = H + 12; const g = c.getContext('2d');
   const col = new THREE.Color(bg || '#FFF6BE'), css = '#' + col.getHexString();
@@ -1356,11 +1378,13 @@ function applyState(j) {
   const PLS = (j.plants || []).filter(p => p.pub !== 0 || p.pid === PID);   /* [P86] 別人設成私人的花，這支手機看不到、聽不到 */
   const ids = new Set(PLS.map(p => p.id));
   plantEvents(PLS);
+  if (!window.__plSeeded && !window.__plSeedT) window.__plSeedT = setTimeout(() => { window.__plSeeded = true; }, 1500);
   Object.keys(plantObjs).forEach(k => { if (!ids.has(+k)) { scene.remove(plantObjs[k].obj); { const ci = colliders.indexOf(plantObjs[k].col); if (ci >= 0) colliders.splice(ci, 1); } delete plantObjs[k]; } });
   PLS.forEach(p => {
     if (plantObjs[p.id]) { plantObjs[p.id].p = p; return; } const [wx, wz] = mapToWorld(p.x, p.y), g = new THREE.Group(), sz = (PSZ[p.wt] || 1) * 1.6;
     // 聲音花（和 Unity SoundGarden.Build 同一個造型）：細莖＋兩片葉＋中心＋6 片花瓣＋腳下淡光環
-    const pc = new THREE.Color(PCOL[p.pt] || '#FFB5C1'), qq = Math.max(0, Math.min(1, p.q == null ? 1 : p.q)), pcol = new THREE.Color('#FFFFFF').lerp(pc, .45 + .55 * qq);
+    let pc = new THREE.Color(PCOL[p.pt] || '#FFB5C1'); const qq = Math.max(0, Math.min(1, p.q == null ? 1 : p.q)); let pcol = new THREE.Color('#FFFFFF').lerp(pc, .45 + .55 * qq);
+    if (p.hex && /^#[0-9a-fA-F]{6}$/.test(p.hex)) { pc = new THREE.Color(p.hex); pcol = new THREE.Color(p.hex).lerp(new THREE.Color('#FFFFFF'), .25).lerp(pc, qq); }   /* [P95] 花朵用玩家馬卡龍色（和 Unity 一致） */
     const st = new THREE.Mesh(new THREE.CylinderGeometry(.04, .06, .95 * sz, 6), mat('#6BB872')); st.position.y = .475 * sz; g.add(st);
     [-1, 1].forEach(s => { const lf = new THREE.Mesh(new THREE.SphereGeometry(.2 * sz, 10, 8), mat('#79C27E')); lf.scale.set(1.6, .22, .8); lf.position.set(s * .2 * sz, .3 * sz, 0); lf.rotation.z = s * .5; g.add(lf); });
     const bl = new THREE.Group(); bl.position.y = .98 * sz; g.add(bl);
@@ -1370,6 +1394,7 @@ function applyState(j) {
     g.add(shadowDisc(.45 * sz)); g.position.copy(U(wx, 0, wz)); g.scale.setScalar(.01); scene.add(g); plantObjs[p.id] = { obj: g, born: performance.now(), p };
     /* 小鎮多了東西一定要有碰撞框：種下的花是圓形碰撞（半徑和 Unity SoundGarden 的 0.3 一樣）；種在腳下時把 Ping 往後推出去，不穿模 */
     const plc = { x: wx, z: wz, r: .3 }; colliders.push(plc); plantObjs[p.id].col = plc;
+    if (window.__plSeeded) { try { plantAnnounce(g, sz, p, pc); } catch (e) {} }   /* [P95] 新種的花：同色漣漪＋3 秒署名浮字（初次載入不演） */
     if (me) { const ddx = me.x - wx, ddz = me.z - wz, dd = Math.hypot(ddx, ddz), rr = plc.r + PR + .05; if (dd < rr) { if (dd > .05) { me.x = wx + ddx / dd * rr; me.z = wz + ddz / dd * rr; } else { me.x = wx - Math.sin(me.yaw) * rr; me.z = wz - Math.cos(me.yaw) * rr; } } }
   });
 }
