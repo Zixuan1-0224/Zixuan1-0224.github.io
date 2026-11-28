@@ -1344,7 +1344,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=119&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=120&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1549,7 +1549,8 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; fcAct(b.getAttribute('data-a'), b.getAttribute('data-k')); }); return (FC.el = el); }
   function fcPlace() { const f = $('#uFrame'), el = FC.el; if (!f || !el) return; const r = f.getBoundingClientRect(); if (r.width < 40) return; el.style.left = (r.left + 16) + 'px'; el.style.width = (r.width - 32) + 'px'; el.style.bottom = 'auto'; el.style.top = Math.round(r.top + 104) + 'px'; }   /* [P89] 小卡放畫面上方（原本在下方會蓋住 Ping 與方向鍵）：熱鬧度膠囊下方、不擋角色 */
   function fcRender() {
-    const el = fcEl(), c = FC.cur; if (!c || c.id < 0 || !fcOk()) { if (!c || c.id < 0) { FC.t0 = 0; FC.id0 = null; FC.gone = false; } el.hidden = true; return; }
+    const el = fcEl(), c = FC.cur; if (c && c.mine && !FC.open) { el.hidden = true; return; }   /* [P106] 自己剛種的花不再自動彈出小卡（和署名、提示疊在一起） */
+    if (!c || c.id < 0 || !fcOk()) { if (!c || c.id < 0) { FC.t0 = 0; FC.id0 = null; FC.gone = false; } el.hidden = true; return; }
     { const tn = Date.now();   /* [P91] 一次只出現一個提示：走近停 1.2 秒才出小卡、自己的花 7 秒後自動收起（走開再回來才會再出現）、走動中不跳出來 */
       if (FC.id0 !== c.id) { FC.t0 = tn; FC.id0 = c.id; FC.gone = false; FC.open = null; }
       if (FC.gone) { el.hidden = true; return; }
@@ -1652,7 +1653,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   }
   function ensSync(g) {   // gardenSync 每次輪詢呼叫：層數變高時提醒一次
     if (!g) return; const t = ensTier(g.kinds | 0); ENS.on = U.m === 1 && S.started && !S.ended;
-    if (t !== ENS.tier) { const up = t > ENS.tier; ENS.tier = t; ENS.nextB = 0; if (up && ENS.on) toast(t >= 7 ? '好多聲音疊在一起，小鎮現在好熱鬧喔！' : t === 1 ? '小鎮有了第一個聲音' : '又一個聲音加入合奏了', '', 2600); }
+    if (t !== ENS.tier) { const up = t > ENS.tier; ENS.tier = t; ENS.nextB = 0;  }
     if (!ENS.tm) ENS.tm = setInterval(ensSched, 120);
   }
   const U = { m: 0 };   // 0 關閉　1 全螢幕＋方向鍵（Unity 管我的 Ping）　2 小窗
@@ -1745,7 +1746,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       if (fresh && CODEX.cfg && CODEX.cfg.spots.some(x => x.gate === d.id)) toast('居民告訴你一些害羞的聲音，打開探測器找找看', 'ok', 3600); }   // [P33] 跟居民聊過才找得到的聲音
     try { if (NET.on) netPost('/residents/met', { id: d.id }); } catch (x) {}
     try { const b = $('#t3talk'); if (b) b.hidden = false; } catch (x) {}
-    try { if (N[d.id]) openRes(d.id); else closeSheet(); } catch (x) { try { closeSheet(); } catch (y) {} }   // 聊完：顯示居民「想聽的聲音」那張卡（網頁原本的居民畫面）
+    try { closeSheet(); } catch (y) {}   /* [P106] 聊完就結束，不再跳出舊的居民任務卡 */   // 聊完：顯示居民「想聽的聲音」那張卡（網頁原本的居民畫面）
   });
   /* ═════════ [P27] 3D 小鎮對話卡：用網頁自己的底部對話卡＋「繼續」按鈕（不用點螢幕）；頭上名字／Blip 說話顯示在畫面左上角 ═════════ */
   const escH = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1932,15 +1933,15 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function tmSet(vq, vl) { try { if (TM.gq) { TM.gq.gain.value = vq; TM.gl.gain.value = vl; } else { TM.q.volume = Math.max(0, Math.min(1, vq)); TM.l.volume = Math.max(0, Math.min(1, vl)); } } catch (e) {} }
   function tmTick() {
     try {
-      const on = BGM.ok && !document.hidden && S.started && !S.ended && bgmOwn();
+      const on = BGM.ok && !document.hidden && S.started && !S.ended && bgmOwn();   /* [P107] 只留安靜版（歡樂版整首拿掉）；隨合奏層數退場 */
       if (!on && !TM.q) return; tmInit();
       TM.a = on ? Math.min(1, TM.a + .03) : Math.max(0, TM.a - .1);
       if (on && TM.ctx && TM.ctx.state === 'suspended') { try { TM.ctx.resume(); } catch (e) {} }
-      if (on) { [TM.q, TM.l].forEach(x => { if (x.paused) { const pr = x.play(); if (pr && pr.catch) pr.catch(() => {}); } }); }
+      if (on) { [TM.q].forEach(x => { if (x.paused) { const pr = x.play(); if (pr && pr.catch) pr.catch(() => {}); } }); }
       const loud = (typeof GP !== 'undefined' && GP && GP.loud) || 0, x0 = Math.max(0, Math.min(1, (loud / 100 - .25) / .45)), kt = x0 * x0 * (3 - 2 * x0);
       TM.k += (kt - TM.k) * .08;
       const duck = (DETS.on ? .6 : 1) * Math.max(0, 1 - ((ENS && ENS.tier) || 0) * .34);   /* [P105] 合奏一層層加入時，背景音樂跟著退場（3 層以上全退），不再和合奏打架 */
-      tmSet(.55 * TM.a * duck * (1 - TM.k), .3 * TM.a * duck * TM.k);
+      tmSet(.55 * TM.a * duck * (1 - TM.k), 0);   /* 歡樂版不播 */
       if (!on && TM.a <= 0) [TM.q, TM.l].forEach(x => { if (!x.paused) x.pause(); });
     } catch (e) {}
   }
