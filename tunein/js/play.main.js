@@ -1303,7 +1303,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=92&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=94&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */

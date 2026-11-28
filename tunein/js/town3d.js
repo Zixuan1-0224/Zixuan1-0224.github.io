@@ -60,8 +60,8 @@ vec3 uNeutral(vec3 c){
 }
 vec3 uGrade(vec3 c){
   { float l0 = uLum(c); c = mix(vec3(l0), c, 1. + uWxSat); c *= 1. + uWxTint; c = mix(c, vec3(.8,.84,.85), uWxLift) * (1. - uWxDim*.5); }   // [W03] 天氣：飽和／色偏／霧白／變暗（預設 0＝不變）
-  c = max(c, vec3(0.)) * exp2(-.18) * vec3(1.0, 1., 1.0);
-  c = .18 * pow(max(c, vec3(1e-4))/.18, vec3(1.26));
+  c = max(c, vec3(0.)) * exp2(-.5) * vec3(1.0, 1., 1.0);
+  c = .18 * pow(max(c, vec3(1e-4))/.18, vec3(1.36));
   float l = uLum(c); c = max(vec3(l) + (c - vec3(l))*1.16, vec3(0.));
   c = clamp(uNeutral(c), 0., 1.);
   vec3 g = pow(c, vec3(1./2.2)); float t = clamp(uLum(g), 0., 1.);
@@ -302,12 +302,13 @@ const TREE_R = 1.7;   /* 大樹幹碰撞半徑（模型單位，調大＝擋更�
 const MODELS = {
   ping: { s: .8 }, blip: { s: .11 }, rowan: { s: .13 }, mouse: { s: .5 }, shop: { s: 1.5 }, cheese: { s: .5 },
   tree: { s: 2.5 }, conifer: { s: 1 }, bench: { s: 1 }, stone: { s: .5 }, flower: { s: .08 }, bush: { s: 1 }, bird1: { s: .3 }, bird2: { s: .4 },
+  home1: { s: 1 }, home2: { s: 1 }, mush1: { s: 1 }, mush2: { s: 1 },   // 房子、蘑菇：大小依 town_layout.json 的 props 外框高度決定
   mountain0: { s: 1 }, mountain1: { s: 1 }, mountain2: { s: 1 }   // 山：大小由 town_layout.json 的外框高度決定（見 placeMountains）
 };
-const TEXS = { ping: ['ping_base'], blip: ['blip'], mouse: ['mouse'], rowan: ['rowan'], flower: ['flower'], conifer: ['conifer'], tree: ['tree', 'treeleaf'], bush: ["bush"], bird1: ['bird1'], bird2: ['bird2'], shop: ['shop'], cheese: ['cheese'], mountain0: ['mountain0'], mountain1: ['mountain1'], mountain2: ['mountain2'], raw: ['ping_tone', 'ping_mask'] };   // raw＝資料圖（深淺圖、染色遮罩），不做色彩轉換
+const TEXS = { ping: ['ping_base'], blip: ['blip'], mouse: ['mouse'], rowan: ['rowan'], flower: ['flower'], conifer: ['conifer'], tree: ['tree', 'treeleaf'], bush: ["bush"], bird1: ['bird1'], bird2: ['bird2'], shop: ['shop'], cheese: ['cheese'], home1: ['home1'], home2: ['home2'], mush1: ['mush1'], mush2: ['mush2'], mountain0: ['mountain0'], mountain1: ['mountain1'], mountain2: ['mountain2'], raw: ['ping_tone', 'ping_mask'] };   // raw＝資料圖（深淺圖、染色遮罩），不做色彩轉換
 const FALLBACK = { conifer: '#4FAE6C', flower: '#FFB5C1', mouse: '#F2DCC4', ping: '#FFB5C1' };
 const P_MOUNT = SOFT({ sh: C(.62, .68, .82), thr: .5, soft: .25, str: .7, amb: .4, rim: C(1, 1, 1), rimS: .12 });   // 山（Moutain_Toon.mat 近似）
-const PBY = { mountain0: P_MOUNT, mountain1: P_MOUNT, mountain2: P_MOUNT, blip: P_BLIP, bird1: P_MOUSE, bird2: P_MOUSE, ping: P_PING, rowan: P_ROWAN, mouse: P_MOUSE, shop: P_HOUSE, cheese: P_HOUSE, bench: P_HARD, stone: P_HARD, flower: P_BLOSSOM, conifer: P_CONIFER, bush: P_BUSH2 };
+const PBY = { mountain0: P_MOUNT, mountain1: P_MOUNT, mountain2: P_MOUNT, blip: P_BLIP, bird1: P_MOUSE, bird2: P_MOUSE, ping: P_PING, rowan: P_ROWAN, mouse: P_MOUSE, shop: P_HOUSE, cheese: P_HOUSE, home1: P_HOUSE, home2: P_HOUSE, mush1: P_HOUSE, mush2: P_HOUSE, bench: P_HARD, stone: P_HARD, flower: P_BLOSSOM, conifer: P_CONIFER, bush: P_BUSH2 };
 const M = {}, T = {};
 const gl = new GLTFLoader(); gl.setMeshoptDecoder(MeshoptDecoder);
 const tl = new THREE.TextureLoader();
@@ -581,6 +582,11 @@ function buildWorld(L) {
   else { const bg = buildBushGeo();
     instParts([{ geometry: bg, material: unityMat(P_BUSH2, { color: new THREE.Color(1, 1, 1), vertexColors: true, side: THREE.DoubleSide }), m: new THREE.Matrix4() }], BU.map(t => ({ p: U(t[1], 0, t[3]), ry: t[4] * Math.PI / 180, s: t[5] / 70 * 1.5 })), null, true);
     BU.forEach(t => colliders.push({ x: t[1], z: t[3], r: 2.2 * t[5] / 70 })); }
+  /* [P81] 房子、蘑菇：Unity 匯出 props（款式、外框中心x、底y、中心z、轉向、外框高）；依外框高縮放，不用管 FBX 匯入倍率 */
+  { const PR = L.props || [], kinds = ['home1', 'home2', 'mush1', 'mush2'];
+    kinds.forEach(k => { const rows = PR.filter(t => t[0] === k); if (!rows.length || !M[k]) return; const gh = modelBox(k).s.y || 1;
+      instSet(k, rows.map(t => ({ p: U(t[1], t[2], t[3]), ry: t[4] * Math.PI / 180, s: t[5] / gh })), k, true, true);
+      if (k[0] === 'h') { const bs = modelBox(k).s; rows.forEach(t => { const f = t[5] / gh; colliders.push({ x: t[1], z: t[3], r: Math.max(bs.x, bs.z) * f * .35 }); }); } }); }
   if (M.bench) { instSet('bench', L.benches.map(t => ({ p: U(t[1], 0, t[3]), ry: -t[4] * Math.PI / 180, s: sc(t, MODELS.bench.s) })), 'bench', false, true);
     const bb = modelBox('bench'); L.benches.forEach(t => addBoxAsCircles(t[1], t[3], -t[4] * Math.PI / 180, sc(t, MODELS.bench.s), bb.b)); }   // 長椅：依模型真實大小，沿長邊排幾顆圓形碰撞框
   if (M.stone) { L.stones = L.stones.filter(t => !/Shadow/.test(t[0]));   // 名字帶 Shadow 的是接地陰影貼片，不是石頭
@@ -1039,8 +1045,8 @@ function rainTrigger() { if (!RAIN.mesh) return; RAIN.on = true; RAIN.t0 = perfo
 /* [W03] 天氣（伺服器給 kind：clear／partly／cloud／fog／rain／wind＋lv 強度）：每種天氣各有自己的光線、天空、色調與動態，數值慢慢漸變。測試：town3d.html?wx=rain&lv=1 */
 const WX_BASE = { sun: SUN_COL.clone(), ambU: UN.uAmbU.value.clone(), ambM: UN.uAmbM.value.clone(), ambD: UN.uAmbD.value.clone() };
 const WX_PROF = {   // dim 變暗／sat 飽和度／tint 色偏／lift 霧白／sun 太陽強度(倍)／amb 環境光(倍)／cl 雲量門檻(越低雲越多)／wind 風／rain 雨／fog 霧罩／cs 雲速
-  clear:  { dim: .1,  sat: 1,   tint: [1, 1, 1],         lift: 0,   sun: 1,    amb: 1,    cl: .66, wind: .1,  rain: 0, fog: 0, cs: 1, top: C(.361, .678, .922), mid: C(.725, .867, .933), hor: C(.894, .945, .937) },
-  partly: { dim: .2,  sat: 1.02, tint: [1, 1, 1],        lift: .02, sun: .8,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.42, .66, .88), mid: C(.74, .85, .91), hor: C(.88, .93, .93) },
+  clear:  { dim: .1,  sat: 1,   tint: [1, 1, 1],         lift: 0,   sun: 1,    amb: 1,    cl: .66, wind: .1,  rain: 0, fog: 0, cs: 1, top: C(.26, .56, .86), mid: C(.56, .74, .88), hor: C(.80, .89, .90) },
+  partly: { dim: .2,  sat: 1.02, tint: [1, 1, 1],        lift: 0,   sun: .8,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.30, .55, .82), mid: C(.58, .74, .86), hor: C(.80, .88, .90) },
   cloud:  { dim: .35, sat: .75, tint: [-.03, -.01, .02], lift: .08, sun: .45,  amb: 1.12, cl: .34, wind: .15, rain: 0, fog: 0, cs: 1, top: C(.58, .65, .72), mid: C(.74, .79, .83), hor: C(.84, .87, .88) },
   fog:    { dim: .2,  sat: .55, tint: [0, .01, .02],     lift: .3,  sun: .35,  amb: 1.2,  cl: .3,  wind: 0,   rain: 0, fog: 1, cs: .4, top: C(.76, .81, .83), mid: C(.83, .87, .88), hor: C(.9, .93, .93) },
   rain:   { dim: .55, sat: .68, tint: [-.12, -.05, .08], lift: .05, sun: .28,  amb: .95,  cl: .3,  wind: .45, rain: 1, fog: 0, cs: 2, top: C(.4, .47, .56), mid: C(.55, .62, .68), hor: C(.7, .76, .79) },
@@ -1428,6 +1434,7 @@ async function boot() {
   await pModels; mark('models'); buildGround(await pMask); mark('ground');
   buildWorld(L); buildNpcs(); buildSpots(L); { const gb = await pGrass; if (!(gb && buildStaticGrass(gb))) buildGrass(); } buildBirds(); buildRain(); mark('built');
   me = { x: 6.37, z: -18.48, yaw: 0, moving: false, obj: null };
+  { const tp = (QP.get('tp') || '').split(',').map(Number); if (tp.length === 2 && isFinite(tp[0]) && isFinite(tp[1])) { me.x = tp[0]; me.z = tp[1]; } }   /* 測試用：?tp=x,z 直接站到 Unity 座標（例：?tp=23,120） */
   me.obj = makePing('flower', ''); scene.add(me.obj);
   // 先把第一份狀態拿到（我的位置、其他人、花），整個場景一次長好，才讓畫面出現
   try { applyState(await Promise.race([pState, new Promise(r => setTimeout(r, 4000))])); } catch (e) {} mark('state');
