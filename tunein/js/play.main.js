@@ -1303,7 +1303,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=97&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=99&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1471,6 +1471,36 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   setInterval(() => {
     try { detInit(); const b = $('#btnDet'); if (!b) return; const show = U.m === 1 && S.started && !S.ended && $('#lsOv') && $('#lsOv').hidden && !!CODEX.cfg; if (b.hidden === show) b.hidden = !show; if (!show && DETS.on) detSet(false); detTick(); coachTick(show); gardenPill(); if (DETS.on && !TN.on && TNC.near && !(TNC.cool[TNC.near] > Date.now())) tnOpen(TNC.near); } catch (e) {}
   }, 600);
+  /* ═════════ [P86] 分享與探索（P09）：走近別人公開的聲音花→出現小卡，留「喜歡／有趣／驚喜」；走近自己的花→改公開／私人、移除（都要再按一次確認）。town3d 送 plantNear，伺服器 /react /plantpub /plantdel ═════════ */
+  const FC = { cur: null, rx: {}, ask: '', askT: 0, el: null };
+  function fcOk() { return U.m === 1 && S.started && !S.ended && document.body.classList.contains('ufull') && !document.body.classList.contains('tut') && !document.body.classList.contains('cine') && !(typeof TN !== 'undefined' && TN.on) && !(typeof TR !== 'undefined' && TR.open); }
+  function fcEl() { if (FC.el) return FC.el; const el = document.createElement('div'); el.id = 'flwCard'; el.hidden = true; document.body.appendChild(el);
+    el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; fcAct(b.getAttribute('data-a'), b.getAttribute('data-k')); }); return (FC.el = el); }
+  function fcPlace() { const f = $('#uFrame'), el = FC.el; if (!f || !el) return; const r = f.getBoundingClientRect(); if (r.width < 40) return; el.style.left = (r.left + 16) + 'px'; el.style.width = (r.width - 32) + 'px'; el.style.top = 'auto'; el.style.bottom = Math.max(8, window.innerHeight - r.bottom + 160) + 'px'; }
+  function fcRender() {
+    const el = fcEl(), c = FC.cur; if (!c || c.id < 0 || !fcOk()) { el.hidden = true; return; }
+    let h;
+    if (c.mine) {
+      const pubNow = c.pub !== 0, a1 = FC.ask === 'pub', a2 = FC.ask === 'del', rx = c.rx || {}, tot = (rx.l || 0) + (rx.f || 0) + (rx.w || 0);
+      h = '<div class="fcT"><b>我的聲音花</b><span>' + (pubNow ? '公開中' + (tot ? '　收到 ' + tot + ' 個回應' : '') : '私人，只有你看得到') + '</span></div><div class="fcB">' +
+        (pubNow ? '<button type="button" data-a="priv">' + '設成私人' + '</button>' : '<button type="button" class="pri" data-a="pub">' + (a1 ? '再按一次，公開給大家' : '公開給大家') + '</button>') +
+        '<button type="button" data-a="del">' + (a2 ? '再按一次，移除' : '移除') + '</button></div>';
+    } else {
+      const rx = c.rx || {}, my = FC.rx[c.id] || '', mk = (k, t) => '<button type="button" data-a="rx" data-k="' + k + '" class="' + (my === k ? 'on' : '') + '">' + t + (rx[k] ? ' ' + rx[k] : '') + '</button>';
+      h = '<div class="fcT"><b>' + (c.nm ? c.nm + ' 的聲音花' : '別人的聲音花') + '</b><span>聽聽看，留個回應</span></div><div class="fcB">' + mk('l', '喜歡') + mk('f', '有趣') + mk('w', '驚喜') + '</div>';
+    }
+    if (el.getAttribute('data-h') !== h) { el.setAttribute('data-h', h); el.innerHTML = h; }
+    fcPlace(); el.hidden = false;
+  }
+  async function fcAct(a, k) {
+    const c = FC.cur; if (!c || !NET.on || !NET.joined) return; const now = Date.now();
+    if (a === 'rx') { const j = await netPost('/react', { pid: NET.pid, id: c.id, k }); if (j && j.ok) { FC.rx[c.id] = k; c.rx = j.rx; toast('收到你的回應了', '', 1600); } else toast('這朵花現在不能回應', 'warn', 1800); fcRender(); return; }
+    if (a === 'pub') { if (FC.ask !== 'pub') { FC.ask = 'pub'; FC.askT = now; fcRender(); return; } FC.ask = ''; const j = await netPost('/plantpub', { pid: NET.pid, id: c.id, pub: 1 }); if (j && j.ok) { c.pub = 1; toast('公開了，其他人走近就能聽到', '', 2200); } else toast('沒有成功，再試一次', 'warn', 2000); fcRender(); return; }
+    if (a === 'priv') { const j = await netPost('/plantpub', { pid: NET.pid, id: c.id, pub: 0 }); if (j && j.ok) { c.pub = 0; c.rx = { l: 0, f: 0, w: 0 }; toast('設成私人了', '', 1800); } else toast('沒有成功，再試一次', 'warn', 2000); fcRender(); return; }
+    if (a === 'del') { if (FC.ask !== 'del') { FC.ask = 'del'; FC.askT = now; fcRender(); return; } FC.ask = ''; const j = await netPost('/plantdel', { pid: NET.pid, id: c.id }); if (j && j.ok) { toast('移除了', '', 1600); FC.cur = null; } else toast('沒有成功，再試一次', 'warn', 2000); fcRender(); }
+  }
+  setInterval(() => { if (FC.ask && Date.now() - FC.askT > 4000) { FC.ask = ''; try { fcRender(); } catch (e) {} } try { if (FC.cur && FC.cur.id >= 0) fcRender(); } catch (e) {} }, 700);
+  window.addEventListener('message', e => { const d = e.data; if (d && d.tunein === 'plantNear') { if (!FC.cur || FC.cur.id !== d.id) FC.ask = ''; FC.cur = d.id >= 0 ? d : null; try { fcRender(); } catch (x) {} } });
   window.addEventListener('message', e => {
     const d = e.data; if (d && d.tunein === 'detInfo') { DETS.info = d; const hr = (CODEX.cfg && CODEX.cfg.hear) || 14; if (DETS.on && d.left > 0 && d.d >= 0) { if (d.d <= hr && !DETS.near) { DETS.near = true; dtFound(); } else if (d.d > hr + 3) DETS.near = false; } detHint(); return; } if (!d || d.tunein !== 'spotNear') return; TNC.near = d.on ? d.id : null; if (d.on && DETS.on) tnOpen(d.id); else { tnClose(); detHint(); }
   });

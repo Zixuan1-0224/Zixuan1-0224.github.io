@@ -1566,3 +1566,15 @@ body.ufull #seedTray.open .sdx-go.ghost{background:#fff;border:2px solid rgba(62
 
 /* [W02] 頂部倒數旁的天氣小圖示 */
 .chip .wx{font-size:16px;line-height:1;margin-right:6px}
+
+/* [P86] 聲音花小卡（走近別人的花留回應／走近自己的花改公開私人）：遊戲風細框，最小點擊 44px，字級 16/14 */
+#flwCard{position:fixed;z-index:7;box-sizing:border-box;padding:10px 12px;background:#FFFCEB;border:2px solid #3E2A5A;border-radius:18px;box-shadow:0 3px 0 #E7BEF8;display:flex;flex-direction:column;gap:8px;color:#3E2A5A;animation:fcIn .3s ease-out}
+@keyframes fcIn{0%{transform:translateY(8px);opacity:0}100%{transform:none;opacity:1}}
+#flwCard[hidden]{display:none}
+#flwCard .fcT{display:flex;flex-direction:column;gap:2px;min-width:0}
+#flwCard .fcT b{font-size:16px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#flwCard .fcT span{font-size:14px;line-height:1.3;opacity:.8}
+#flwCard .fcB{display:flex;gap:8px}
+#flwCard .fcB button{flex:1;min-height:44px;padding:0 8px;border:2px solid #3E2A5A;border-radius:14px;background:#fff;color:#3E2A5A;font:inherit;font-size:15px;touch-action:manipulation;cursor:pointer}
+#flwCard .fcB button.on,#flwCard .fcB button.pri{background:#F2619C;color:#fff}
+@media (prefers-reduced-motion:reduce){#flwCard{animation:none}}

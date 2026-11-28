@@ -67,7 +67,8 @@ vec3 uGrade(vec3 c){
   vec3 g = pow(c, vec3(1./2.2)); float t = clamp(uLum(g), 0., 1.);
   g = uSoftLight(g, mix(vec3(.5), vec3(.3098,.5608,.6510), 1.-t));
   g = uSoftLight(g, mix(vec3(.5), vec3(1.,.9020,.7098), t));
-  g = g*vec3(.70,.68,.66) + vec3(.20,.20,.17);   /* [P82] 對齊 Unity 實測：草(150,195,118)／路(223,208,153)，壓亮部、墊高暗部 */
+  g = g*vec3(.70,.68,.66) + vec3(.20,.20,.17);   /* [P82] 對齊 Unity 實測：草(150,195,118)／路(223,208,153) */
+  g = g*vec3(.83,.81,.79) + vec3(.05,.05,.075); { float lg = dot(g, vec3(.2126,.7152,.0722)); g = mix(vec3(lg), g, 1.08); }   /* [P85] 手機實拍比對：網頁暗部太亮、飽和低（亮度 p5 132→112、飽和 .28→.36）→ 加對比＋飽和 */
   return pow(clamp(g, 0., 1.), vec3(2.2));
 }
 float uHash3(vec3 p){ p = fract(p*.3183099 + .1); p *= 17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
@@ -931,7 +932,7 @@ function spotFrame(now) {
 window.__spot = { SPOT, DET, TUT, WATER, waterDist, onBridge, waterBlocked, get me() { return me; } };
 function sndSend() {
   const l = [];
-  for (const k in plantObjs) { const q = plantObjs[k], key = sndKey(q.p.tr); if (!key) continue; const [wx, wz] = mapToWorld(q.p.x, q.p.y), d = Math.hypot(wx - me.x, wz - me.z), g = Math.pow(Math.max(0, 1 - d / 45), 2); if (g > .02) l.push({ id: +k, k: key, g: +g.toFixed(2), d }); }
+  for (const k in plantObjs) { const q = plantObjs[k], key = sndKey(q.p.tr); if (!key || (q.p.pub === 0 && q.p.pid !== PID)) continue; const [wx, wz] = mapToWorld(q.p.x, q.p.y), d = Math.hypot(wx - me.x, wz - me.z), g = Math.pow(Math.max(0, 1 - d / 45), 2); if (g > .02) l.push({ id: +k, k: key, g: +g.toFixed(2), d }); }
   if (DET.on) {
     const H = (SPOT.cfg && SPOT.cfg.hear) || 14, fw = new THREE.Vector3(); cam.getWorldDirection(fw); const rx = -fw.z, rz = fw.x, rl = Math.hypot(rx, rz) || 1;
     SPOT.list.forEach(o => {
@@ -1145,7 +1146,7 @@ function pingAppear(obj, delay) {
 /* Ping 出現的光點參數：和 Unity PingAppearFx.MakeSparks 逐項相同（要調兩邊一起改） */
 const AP = { count: 26, radius: 1.0, thick: .35, cy: 1.1, spd: [.05, .25], wind: .15, up: [.15, .45], grav: .04 * 9.81, life: [2, 2.8], size: [.25, .6] };
 /* 出現動作（和 Unity PingSpin 同一套，要改兩邊一起改）：從 3.1 公尺高直直落下 0.5 秒（重力，越落越快）→ 落地壓一下 0.3 秒（光點＋叮聲）→ 原地轉一圈 1.0 秒；共 1.8 秒，期間不能移動。開始時間由伺服器 /appear 的 at 決定，網頁和 Unity 同一刻開始 */
-const SPIN = { drop: .5, hold: .3, spin: 1.0, h: 3.1 };
+const SPIN = { drop: .5, hold: .3, spin: 1.0, h: 0 };   /* [P85] h=0：不再從高處落下，原地由小彈出（和 Unity PingSpin 同步） */
 SPIN.total = SPIN.drop + SPIN.hold + SPIN.spin;
 let SRVOFF = 0; const srvNow = () => Date.now() + SRVOFF;   // 伺服器時間 ≈ 本機時間 + SRVOFF（每次 /state 與 /appear 更新）
 const smooth = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
@@ -1154,7 +1155,7 @@ function appearFx(now) {
     const a = APPEAR[i], t = a.fz != null ? a.fz : (now - a.t0) / 1000, ts = t - SPIN.drop;   // ts＝落地後的秒數（光點從落地開始）
     if (t < 0) { a.obj.scale.setScalar(.001); continue; }
     const o = a.obj; if (a.base == null) a.base = o.rotation.y; const base = (me && o === me.obj) ? o.rotation.y : a.base; let rot = base, dy = 0, sx = 1, sy = 1;
-    if (t < SPIN.drop) { const u = t / SPIN.drop; dy = SPIN.h * (1 - u * u); }                                                        // 直直落下（重力）
+    if (t < SPIN.drop) { const u = t / SPIN.drop, k = .15 + .95 * smooth(u); dy = 0; sx = k; sy = k; }                                                        // 直直落下（重力）
     else if (t < SPIN.drop + SPIN.hold) { const u = (t - SPIN.drop) / SPIN.hold, sq = Math.sin(u * Math.PI) * .1; sx = 1 + sq; sy = 1 - sq * 1.6; }   // 落地壓一下
     else if (t < SPIN.total) rot = base + Math.PI * 2 * smooth((t - SPIN.drop - SPIN.hold) / SPIN.spin);                              // 原地轉一圈
     o.rotation.y = t >= SPIN.total ? base : rot; o.position.y += dy; o.scale.set(sx, sy, sx);
@@ -1196,7 +1197,7 @@ addEventListener('keydown', e => { held[e.key] = 1; }); addEventListener('keyup'
 function keyCtl() { const f = (held.ArrowUp || held.w ? 1 : 0) - (held.ArrowDown || held.s ? 1 : 0), t = (held.ArrowRight || held.d ? 1 : 0) - (held.ArrowLeft || held.a ? 1 : 0); return [f, t]; }
 
 /* 【除錯】顯示碰撞框：網址加 ?dbg=1，或按鍵盤 C（紅圈＝圓形、紅框＝方形）。要加／調碰撞框就看這個畫面 */
-let colDbg = null; window.__col = { colliders, boxes };
+let colDbg = null; window.__col = { colliders, boxes }; window.__gl = { renderer, scene, cam };   /* 除錯：量畫面色彩用 */
 function toggleColliders(on) {
   if (colDbg) { scene.remove(colDbg); colDbg = null; } if (!on) return;
   colDbg = new THREE.Group(); const mt = new THREE.LineBasicMaterial({ color: 0xff3366, depthTest: false, transparent: true }), ln = pts => { const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mt); l.renderOrder = 20; colDbg.add(l); };
@@ -1253,6 +1254,21 @@ function postMove(now) {
   api('/move', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pid: PID, x: +mx.toFixed(1), y: +my.toFixed(1) }) }).finally(() => { inflight = false; });
 }
 const PCOL = ['#A9D3FF', '#FFB5C1', '#FFE59A'], PSZ = [.7, 1, 1.35];
+/* [P86] 聲音花的節奏動作；走近花（3.2 公尺內）時通知手機出現小卡（回應／公開設定） */
+function plantBeat(rh, now, k) {
+  if (rh === 0) { const u = ((now / 1000 + k * .37) % 1.1) / 1.1; return 1 + .1 * Math.pow(Math.max(0, Math.sin(u * Math.PI)), 3); }
+  if (rh === 1) { const u = (now / 1000 + k * .5) % 3, on = u < 1.4; return on ? 1 + .06 * Math.sin(u / 1.4 * Math.PI * 4) : 1; }
+  return 1 + .04 * Math.sin(now / 520 + k);
+}
+let PNEAR = { id: -1, sig: '' };
+function plantNearFrame() {
+  if (!me || !EMBED) return;
+  let best = null, bd = 3.2;
+  for (const k in plantObjs) { const q = plantObjs[k], [wx, wz] = mapToWorld(q.p.x, q.p.y), d = Math.hypot(wx - me.x, wz - me.z); if (d < bd && performance.now() - q.born > 700) { bd = d; best = q.p; } }
+  const sig = best ? best.id + '|' + (best.pub === 0 ? 0 : 1) + '|' + (best.rx ? best.rx.l + ',' + best.rx.f + ',' + best.rx.w : '') : '';
+  if (sig === PNEAR.sig) return; PNEAR.sig = sig;
+  post(best ? { tunein: 'plantNear', id: best.id, pid: best.pid, nm: best.nm || '', mine: best.pid === PID, pub: best.pub === 0 ? 0 : 1, rx: best.rx || { l: 0, f: 0, w: 0 } } : { tunein: 'plantNear', id: -1 });
+}
 let spawned = false, firstStateDone = false, holdT = 0;
 function holdView(on) { try { const cv = renderer.domElement; cv.style.transition = on ? 'none' : 'opacity .45s ease-out'; cv.style.opacity = on ? '0' : '1'; clearTimeout(holdT); if (on) holdT = setTimeout(() => holdView(false), 4000); } catch (e) {} }   // 換身分／重進時先藏畫面，等新位置確定再顯示，不會閃到舊位置或殘留的 Ping
 /* ---- Blip（粉紅貝雷帽兔子）：位置/朝向/說話由 Unity 經 server /state 的 blip 欄位同步 ---- */
@@ -1287,8 +1303,8 @@ function stepSfx(now) {
 }
 function blipFrame(dt) {
   if (!BLIP || !BLIP.init || !BLIP.obj.visible) return;
-  if (BLIP.mv && BLIP.vx !== undefined && performance.now() - BLIP.lt < 700) { BLIP.tx += BLIP.vx * dt; BLIP.tz += BLIP.vz * dt; }
-  const a = Math.min(1, dt * 6); BLIP.x += (BLIP.tx - BLIP.x) * a; BLIP.z += (BLIP.tz - BLIP.z) * a;
+  if (BLIP.mv && BLIP.vx !== undefined && performance.now() - BLIP.lt < 220) { BLIP.tx += BLIP.vx * dt; BLIP.tz += BLIP.vz * dt; }
+  const a = Math.min(1, dt * 10); BLIP.x += (BLIP.tx - BLIP.x) * a; BLIP.z += (BLIP.tz - BLIP.z) * a;
   let d = BLIP.tyaw - BLIP.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); BLIP.yaw += d * Math.min(1, dt * 8);
   BLIP.obj.position.copy(U(BLIP.x, 0, BLIP.z)); BLIP.obj.rotation.y = Math.PI - BLIP.yaw;
   const u = BLIP.obj.userData; if (u.mixer) { setAnim(BLIP.obj, BLIP.mv ? 'walk' : 'idle'); u.mixer.update(dt); }
@@ -1313,11 +1329,12 @@ function applyState(j) {
   });
   const live = new Set((j.players || []).filter(p => p.pid !== PID).map(p => p.pid)); Object.keys(others).forEach(k => { if (!live.has(k)) { scene.remove(others[k].obj); delete others[k]; } });
   // 種下的聲音花
-  const ids = new Set((j.plants || []).map(p => p.id));
-  plantEvents(j.plants || []);
+  const PLS = (j.plants || []).filter(p => p.pub !== 0 || p.pid === PID);   /* [P86] 別人設成私人的花，這支手機看不到、聽不到 */
+  const ids = new Set(PLS.map(p => p.id));
+  plantEvents(PLS);
   Object.keys(plantObjs).forEach(k => { if (!ids.has(+k)) { scene.remove(plantObjs[k].obj); { const ci = colliders.indexOf(plantObjs[k].col); if (ci >= 0) colliders.splice(ci, 1); } delete plantObjs[k]; } });
-  (j.plants || []).forEach(p => {
-    if (plantObjs[p.id]) return; const [wx, wz] = mapToWorld(p.x, p.y), g = new THREE.Group(), sz = (PSZ[p.wt] || 1) * 1.6;
+  PLS.forEach(p => {
+    if (plantObjs[p.id]) { plantObjs[p.id].p = p; return; } const [wx, wz] = mapToWorld(p.x, p.y), g = new THREE.Group(), sz = (PSZ[p.wt] || 1) * 1.6;
     // 聲音花（和 Unity SoundGarden.Build 同一個造型）：細莖＋兩片葉＋中心＋6 片花瓣＋腳下淡光環
     const pc = new THREE.Color(PCOL[p.pt] || '#FFB5C1'), qq = Math.max(0, Math.min(1, p.q == null ? 1 : p.q)), pcol = new THREE.Color('#FFFFFF').lerp(pc, .45 + .55 * qq);
     const st = new THREE.Mesh(new THREE.CylinderGeometry(.04, .06, .95 * sz, 6), mat('#6BB872')); st.position.y = .475 * sz; g.add(st);
@@ -1420,7 +1437,8 @@ function frame(now) {
   }
   stepSfx(now);
   blipFrame(dt);
-  for (const k in plantObjs) { const q = plantObjs[k], t = Math.min(1, (now - q.born) / 600), e = 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2); q.obj.scale.setScalar(Math.max(.01, e)); q.obj.rotation.y = Math.sin(now / 900 + +k) * .15; }
+  for (const k in plantObjs) { const q = plantObjs[k], t = Math.min(1, (now - q.born) / 600), e = 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2); q.obj.scale.setScalar(Math.max(.01, e * (t < 1 ? 1 : plantBeat(q.p.rh, now, +k)))); q.obj.rotation.y = Math.sin(now / 900 + +k) * .15; }   /* [P86] 節奏：和 Unity SoundGarden 一樣——一下一下＝脈動、一陣一陣＝忽搖忽停、連續＝一直輕搖 */
+  if (fr % 10 === 0) plantNearFrame();
   NPCS.forEach(n => { n.m.position.y = n.m.userData.by - .4 + Math.sin(now / 1000 * 3.2) * .12; if (n.obj.userData.mixer) n.obj.userData.mixer.update(dt); mkFrame(n, now, dt); }); mkFxFrame(now);
   { const p = me.obj.position; sun.target.position.set(Math.round(p.x / 2) * 2, 0, Math.round(p.z / 2) * 2); sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 90); }
   UN.uTime.value = now / 1000; try { dustFrame(now); } catch (e) { DUST.n = 0; } updateGrass(me.x, me.z); grassChunkFrame(me.x, me.z); fxFrame(now, dt); weatherFx(dt); spotFrame(now, dt); if (fr % 15 === 0) sndSend();
@@ -1453,7 +1471,7 @@ async function boot() {
   firstStateDone = true;
   setInterval(async () => { applyState(await api('/state')); }, 500);
   /* [T17b] Blip 專用快速通道：伺服器有 GET /blip 才用（沒有就維持上面 /state 的 0.5 秒），每 0.25 秒一次，跟 Unity BlipSync 的回報節奏一樣 */
-  setInterval(async () => { try { const j = await api('/blip'); if (j && typeof j === 'object' && 'blip' in j) applyBlip(j.blip); } catch (e) {} }, 250);   // 狀態輪詢（秒）：Blip 走路、說話要跟 Unity 同步，所以 0.5 秒一次
+  setInterval(async () => { try { const j = await api('/blip'); if (j && typeof j === 'object' && 'blip' in j) applyBlip(j.blip); } catch (e) {} }, 120);   // 狀態輪詢（秒）：Blip 走路、說話要跟 Unity 同步，所以 0.5 秒一次
   updateGrass(me.x, me.z, true); camPos.set(0, 0, 0);
   try { if (renderer.compileAsync) await renderer.compileAsync(scene, cam); else renderer.compile(scene, cam); mark('compile'); const seenT = new Set(); scene.traverse(o => { const ms = o.material ? [].concat(o.material) : []; ms.forEach(m => { for (const k of ['map', 'alphaMap', 'emissiveMap']) { const t = m[k]; if (t && !seenT.has(t)) { seenT.add(t); try { renderer.initTexture(t); } catch (e) {} } } }); }); } catch (e) {}   // 貼圖先全部送進顯卡，第一次看到樹和花叢才不會卡一下才長出來
   lt.textContent = '快好了，再等一下…'; parent.postMessage({ tunein: 'prog', p: 99 }, '*');
