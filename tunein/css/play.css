@@ -1729,3 +1729,46 @@ body:has(#sheet:not([hidden])) .sdx-co,body:has(#sheet:not([hidden])) .sdx-bd,bo
 @keyframes p124pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 body[data-tut="1"] #mapWrap .dgrp .dk,body[data-tut="1"] .dpad .dk{animation:p124pulse 1.6s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){body[data-tut="1"] #mapWrap .dgrp .dk,body[data-tut="1"] .dpad .dk{animation:none}.bk-bar i{transition:none}}
+
+/* ═════ [P125] 結果頁圖像化／教學按鍵標籤／種花回饋卡 ═════ */
+.rs-top{display:flex;align-items:center;gap:16px;justify-content:center;margin:4px 0 12px}
+.rs-ring{position:relative;width:104px;height:104px;flex:none}
+.rs-ring svg{width:100%;height:100%}
+.rs-ring circle{fill:none;stroke-width:11}
+.rs-ring .bg{stroke:rgba(62,42,90,.12)}
+.rs-ring .fg{stroke:#EE8A97;stroke-linecap:round;transition:stroke-dasharray .9s ease}
+.rs-ring b{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;padding-top:34px;font-size:30px;font-weight:900;color:#3E2A5A;font-family:var(--font-display,inherit)}
+.rs-ring small{font-size:15px;font-weight:700;opacity:.65;margin-left:1px}
+.rs-st,.lv2-s{display:grid;gap:6px;min-width:0}
+.lv2-s{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px 0}
+.rs-s{display:grid;grid-template-columns:28px auto auto;align-items:center;gap:6px;color:#3E2A5A;white-space:nowrap}
+.lv2-s .rs-s{grid-template-columns:none;grid-auto-flow:column;padding:8px 12px;border-radius:16px;background:#FFF9F3;box-shadow:0 2px 8px rgba(110,70,100,.12)}
+.rs-s i{display:grid;place-items:center}
+.rs-s b{font-size:22px;font-weight:900;font-family:var(--font-display,inherit)}
+.rs-s em{font-style:normal;font-size:14px;font-weight:700;opacity:.7}
+.rs-g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
+.rs-t{display:grid;justify-items:center;gap:2px;padding:10px 2px 8px;border-radius:18px;background:rgba(255,255,255,.6);color:rgba(62,42,90,.35);min-width:0}
+.rs-t.on{background:var(--c);color:#3E2A5A;box-shadow:0 2px 8px rgba(110,70,100,.14);animation:p38Pop .5s cubic-bezier(.3,1.8,.5,1) both}
+.rs-t b{font-size:14px;line-height:1.2;font-weight:800;white-space:nowrap}
+.lv2-r{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 2px}
+.lv2-r i{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.6);color:rgba(62,42,90,.3)}
+.lv2-r i.on{background:#F3AAB1;color:#3E2A5A}
+#s-leave .lvnone,#s-leave .lvchips{display:none !important}
+.sdx-kl{position:fixed;z-index:86;transform:translate(-50%,-100%);padding:5px 12px;border-radius:99px;background:#FFF9F3;color:#3E2A5A;font-size:14px;font-weight:800;box-shadow:0 2px 8px rgba(62,42,90,.2);pointer-events:none;white-space:nowrap}
+.sdx-kl::after{content:"";position:absolute;left:50%;bottom:-5px;width:10px;height:10px;background:#FFF9F3;transform:translateX(-50%) rotate(45deg)}
+.sdx-kl[hidden]{display:none}
+.sdx-pf{position:fixed;z-index:90;transform:translate(-50%,0);width:min(300px,86vw);padding:14px 16px;border-radius:22px;background:rgba(255,249,243,.97);color:#3E2A5A;box-shadow:0 6px 22px rgba(62,42,90,.22);text-align:center;pointer-events:none}
+.sdx-pf[hidden]{display:none}
+.sdx-pf.in{animation:p125in .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes p125in{from{opacity:0;transform:translate(-50%,10px) scale(.92)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+.pf-h{display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:800}
+.pf-d{display:flex;gap:5px;justify-content:center;margin:10px 0 8px}
+.pf-d i{width:14px;height:14px;border-radius:50%;background:rgba(62,42,90,.14)}
+.pf-d i.on{background:#EE8A97}
+.pf-d i.new{animation:p38Pop .7s cubic-bezier(.3,1.8,.5,1) .15s both;box-shadow:0 0 0 4px rgba(238,138,151,.35)}
+.sdx-pf p{margin:0;font-size:14px;line-height:1.5;font-weight:600}
+.sdx-pf em{font-style:normal;font-weight:900;color:#C94F66;margin-right:6px;font-size:16px}
+.sdx-cd{display:flex}
+@media (prefers-reduced-motion:reduce){.rs-t.on,.sdx-pf.in,.pf-d i.new{animation:none}.rs-ring .fg{transition:none}}
+
+#stTiles,#s-settle .tiles#stTiles{display:block !important;grid-template-columns:none !important;width:100%}
