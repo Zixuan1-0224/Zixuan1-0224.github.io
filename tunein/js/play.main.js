@@ -998,12 +998,12 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       const f = $('#uFrame'), r = f && !f.hidden ? f.getBoundingClientRect() : null; if (r && r.width > 40) { gpEl.style.left = 'auto'; gpEl.style.transform = 'none'; gpEl.style.right = (innerWidth - r.right + 12) + 'px'; gpEl.style.top = (r.top + 62) + 'px'; } } catch (e) {}
   }
   /* [W02] 天氣：伺服器統一給一個值；頂部倒數旁一個小圖示，換天氣時 Blip 說一句（不佔操作區）；小鎮光線／雨／風由 town3d 處理 */
-  const WX_ICON = { clear: '☀️', cloud: '☁️', rain: '🌧️', wind: '🌬️' }, WX_SAY = { clear: '今天天氣好，聲音傳得很遠。', cloud: '雲有點厚，小鎮靜靜的。', rain: '外面在下雨，聽聽雨聲吧。', wind: '風有點大，樹葉沙沙響。' };
-  let WXK = '';
+  const WX_ICON = { clear: '☀️', partly: '⛅', cloud: '☁️', fog: '🌫️', rain: '🌧️', wind: '🌬️' }, WX_SAY = { partly: '雲慢慢飄，光一下亮一下。', fog: '起霧了，遠遠的聲音變柔柔的。', clear: '今天天氣好，聲音傳得很遠。', cloud: '雲有點厚，小鎮靜靜的。', rain: '外面在下雨，聽聽雨聲吧。', wind: '風有點大，樹葉沙沙響。' };
+  let WXK = '', WXO = null;
   function weatherSync(w) {
-    if (!w || !WX_ICON[w.kind] || w.kind === WXK) return;
-    WXK = w.kind; const el = $('#wx'); if (el) { el.textContent = WX_ICON[w.kind]; el.hidden = false; el.setAttribute('aria-label', '天氣：' + (w.label || '')); }
-    toTown({ tunein: 'weather', kind: w.kind });
+    if (!w || !WX_ICON[w.kind]) return; const wk = w.kind + ':' + (w.lv || 1); if (wk === WXK) return;
+    WXK = wk; WXO = w; const el = $('#wx'); if (el) { el.textContent = WX_ICON[w.kind]; el.hidden = false; el.setAttribute('aria-label', '天氣：' + (w.label || '')); }
+    toTown({ tunein: 'weather', kind: w.kind, lv: w.lv });
     let seen = ''; try { seen = sessionStorage.getItem('tunein.wx') || ''; } catch (e) {}
     if (S.started && !S.ended && seen !== w.kind) { try { sessionStorage.setItem('tunein.wx', w.kind); } catch (e) {} toast('Blip：' + WX_SAY[w.kind], 'info'); }
   }
@@ -1303,7 +1303,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=87&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=89&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1633,13 +1633,13 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
      歡迎 → 走走看 → 打開探測器 → 跟著箭頭 → 調清楚 → 種花；教學中小鎮只開一個教學聲音點、活動範圍縮小，結束後才解鎖全圖。
      每一步都由「玩家真的做了」才換下一步（走路、開探測器、靠近、收下、種花），不靠按「下一步」。 */
   const TUTS = [
-    { h: '歡迎來到聲音小鎮', p: '收聲音、種成花，小鎮就熱鬧' },
-    { h: '先走走看', p: '右邊前進，左邊轉身' },
-    { h: '打開探測器', p: '按下方「探測器」' },
-    { h: '跟著箭頭', p: '走向發光的聲音點' },
-    { h: '調清楚', p: '滑到波形最整齊' },
-    { h: '種在小鳥旁', p: '往花店走，按「種花」' },
-    { h: '小鳥飛來了', p: '鳥叫聲回到小鎮。靠近居民可以聊天' }
+    { h: '歡迎來到聲音小鎮', p: '我是 Blip。收集聲音，種成花，小鎮就會熱鬧起來' },
+    { h: '先走走看', p: '右邊搖桿往前走，左邊轉身看看四周' },
+    { h: '打開探測器', p: '按下面的「探測器」，聲音點會亮起來' },
+    { h: '跟著箭頭', p: '朝箭頭走，走進發光的圈圈' },
+    { h: '調清楚', p: '滑動旋鈕，讓波形變得最整齊' },
+    { h: '種在小鳥旁', p: '帶著聲音走到花店旁，按「種花」' },
+    { h: '小鳥飛來了', p: '鳥叫聲回來了！走近居民可以聊聊，天氣也會變喔' }
   ];
   const TUT_NEAR = { h: '出現聲音點了', p: '這次是鳥叫聲，走進圈裡' };
   const TUTO = { on: false, ack: 0, mvT: 0, go: 0, plAt: 0 };
@@ -1793,7 +1793,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (d.tunein === 'cine') { CINE.on = !!d.on; document.body.classList.toggle('cine', CINE.on); clearTimeout(CINE.safe); if (CINE.on) CINE.safe = setTimeout(() => { CINE.on = false; document.body.classList.remove('cine'); }, 15000); return; }   /* 保險：過場最多 15 秒，小鎮沒回報結束也會自動解除，方向鍵不會一直被藏起來 */
     if (d.tunein === 'dbg') { try { window.__tlog && window.__tlog('town ' + d.s); } catch (x) {} TOWN.sp = /sp=1/.test(d.s || ''); TOWN.t = Date.now(); return; }
     if (d.tunein === 'tutState') { TUTO.ack = 99; return; }
-    if (d.tunein === 'ready') { TUTO.ack = 0; if (WXK) toTown({ tunein: 'weather', kind: WXK }); toTown({ tunein: 'unlock', ids: Object.keys(S.unl || {}) }); return; }
+    if (d.tunein === 'ready') { TUTO.ack = 0; if (WXO) toTown({ tunein: 'weather', kind: WXO.kind, lv: WXO.lv }); toTown({ tunein: 'unlock', ids: Object.keys(S.unl || {}) }); return; }
     if (d.tunein === 'tutEdge') toast('先在這附近完成教學，之後就能走遠囉', '', 2600);
   });
 

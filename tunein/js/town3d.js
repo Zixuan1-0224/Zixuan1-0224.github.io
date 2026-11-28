@@ -39,14 +39,15 @@ const SUN_DIR = new THREE.Vector3(-0.643, 0.669, 0.371).normalize();            
 const HOR = C(.894, .945, .937), SKY_TOP = C(.361, .678, .922), SKY_MID = C(.725, .867, .933), SKY_GND = C(.659, .812, .722);   // Sky_Pink.mat
 const TINT_SAT = 1.6;   /* Ping 染色飽和度：要和 Unity Player_Toon 的 _TintSat、選色頁預覽（play.main.js SOFT.sat）一致 */
 const UN = {   // 環境光：Unity 用天空做 SH；這裡用天空三色近似（天頂／中段／地面）
-  uSun: { value: SUN_COL }, uTime: { value: 0 }, uWxDim: { value: 0 }, uWind: { value: 0 },
+  uSun: { value: SUN_COL }, uTime: { value: 0 }, uWxDim: { value: 0 }, uWind: { value: 0 }, uWxSat: { value: 0 }, uWxLift: { value: 0 }, uCl: { value: .66 }, uWxTint: { value: new THREE.Vector3(0, 0, 0) },
   uAmbU: { value: C(.50, .75, .93).multiplyScalar(.9) }, uAmbM: { value: C(.76, .88, .93).multiplyScalar(.9) }, uAmbD: { value: C(.66, .81, .72).multiplyScalar(.8) }
 };
 
 /* 後製（PostFX_Atmosphere）：Neutral 色調映射、曝光 +0.05、對比 +18、飽和 +14、暗部偏青／亮部偏暖、色溫 +8；暈影在 CSS */
 const GLSL_COMMON = `
 uniform vec3 uSun, uAmbU, uAmbM, uAmbD;
-uniform float uTime, uWxDim, uWind;
+uniform float uTime, uWxDim, uWind, uCl, uWxSat, uWxLift;
+uniform vec3 uWxTint;
 float uLum(vec3 c){ return dot(c, vec3(.2126,.7152,.0722)); }
 vec3 uAmb(vec3 n){ float y = n.y; return mix(uAmbD, mix(uAmbM, uAmbU, smoothstep(0.,1.,y)), smoothstep(-1.,0.,y)); }
 vec3 uSoftLight(vec3 b, vec3 s){ vec3 r1 = 2.*b*s + b*b*(1.-2.*s); vec3 r2 = sqrt(b)*(2.*s-1.) + 2.*b*(1.-s); return vec3(s.r<.5?r1.r:r2.r, s.g<.5?r1.g:r2.g, s.b<.5?r1.b:r2.b); }
@@ -58,7 +59,7 @@ vec3 uNeutral(vec3 c){
   float g = 1. - 1./(.15*(peak - np) + 1.); return mix(c, vec3(np), g);
 }
 vec3 uGrade(vec3 c){
-  c = mix(c, vec3(uLum(c))*vec3(.84,.9,1.), uWxDim*.7) * (1. - uWxDim*.22);   // [W03] 陰雨：變灰、變暗
+  { float l0 = uLum(c); c = mix(vec3(l0), c, 1. + uWxSat); c *= 1. + uWxTint; c = mix(c, vec3(.8,.84,.85), uWxLift) * (1. - uWxDim*.3); }   // [W03] 天氣：飽和／色偏／霧白／變暗（預設 0＝不變）
   c = max(c, vec3(0.)) * exp2(.05) * vec3(1.03, 1., .965);
   c = .18 * pow(max(c, vec3(1e-4))/.18, vec3(1.18));
   float l = uLum(c); c = max(vec3(l) + (c - vec3(l))*1.14, vec3(0.));
@@ -258,9 +259,9 @@ void main(){
   vec3 d = normalize(p); float h = d.y, hu = max(h, 0.); const float MH = .286;
   float t1 = clamp(hu/MH, 0., 1.), t2 = clamp((hu - MH)/(1. - MH), 0., 1.);
   vec3 col = mix(hor, mid, smoothstep(0.,1.,t1)); col = mix(col, top, smoothstep(0.,1.,t2)); col = mix(col, gnd, 1. - smoothstep(-.15, 0., h));
-  if (h > .02) { vec2 q = d.xz/(h + .35)*1.7 + vec2(t*.01, 0.); float c = fbm(q*1.3); float a = smoothstep(.56, .66, c) * smoothstep(.02, .22, h) * (1. - smoothstep(.55, .9, h));
+  if (h > .02) { vec2 q = d.xz/(h + .35)*1.7 + vec2(t*.01, 0.); float c = fbm(q*1.3); float a = smoothstep(uCl - .1, uCl, c) * smoothstep(.02, .22, h) * (1. - smoothstep(.55, .9, h));
     float sh = clamp((fbm(q*1.3 + vec2(.12,.2)) - c)*5. + .5, 0., 1.);
-    vec3 cc = mix(vec3(1.,.95,.95), vec3(.58,.82,1.)*.9, sh*.75*.9); col = mix(col, cc, a*.9); }
+    vec3 cc = mix(vec3(1.,.95,.95), vec3(.58,.82,1.)*.9, sh*.75*.9); cc *= 1. - uWxDim*.45; col = mix(col, cc, a*.9); }
   gl_FragColor = vec4(uGrade(col), 1.);
   #include <colorspace_fragment>
 }` });
@@ -1035,24 +1036,50 @@ function buildRain() {
   for (let i = 0; i < 26; i++) { const r = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0, depthWrite: false })); r.visible = false; r.renderOrder = 8; scene.add(r); RAIN.rings.push({ m: r, t: -1 }); }
 }
 function rainTrigger() { if (!RAIN.mesh) return; RAIN.on = true; RAIN.t0 = performance.now(); RAIN.mesh.visible = true; post({ tunein: 'snd', ev: 'rain', on: true }); }
-/* [W03] 天氣（伺服器給 kind：clear／cloud／rain／wind）：陰雨讓畫面變灰、太陽變弱；雨沿用雨絲持續下；風讓草擺得更大。數值慢慢漸變，切換不突兀。測試：town3d.html?wx=rain */
-const WEA = { kind: 'clear', dim: 0, wind: 0, rain: 0, tDim: 0, tWind: 0, tRain: 0, snd: false };
-function weatherSet(k) { WEA.kind = k; WEA.tDim = k === 'rain' ? .8 : k === 'cloud' ? .55 : 0; WEA.tWind = k === 'wind' ? 1 : k === 'rain' ? .4 : 0; WEA.tRain = k === 'rain' ? 1 : 0; }
+/* [W03] 天氣（伺服器給 kind：clear／partly／cloud／fog／rain／wind＋lv 強度）：每種天氣各有自己的光線、天空、色調與動態，數值慢慢漸變。測試：town3d.html?wx=rain&lv=1 */
+const WX_BASE = { sun: SUN_COL.clone(), ambU: UN.uAmbU.value.clone(), ambM: UN.uAmbM.value.clone(), ambD: UN.uAmbD.value.clone() };
+const WX_PROF = {   // dim 變暗／sat 飽和度／tint 色偏／lift 霧白／sun 太陽強度(倍)／amb 環境光(倍)／cl 雲量門檻(越低雲越多)／wind 風／rain 雨／fog 霧罩／cs 雲速
+  clear:  { dim: 0,   sat: 1,   tint: [1, 1, 1],         lift: 0,   sun: 1,    amb: 1,    cl: .66, wind: .1,  rain: 0, fog: 0, cs: 1, top: C(.361, .678, .922), mid: C(.725, .867, .933), hor: C(.894, .945, .937) },
+  partly: { dim: .1,  sat: 1.02, tint: [1, 1, 1],        lift: .02, sun: .8,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.42, .66, .88), mid: C(.74, .85, .91), hor: C(.88, .93, .93) },
+  cloud:  { dim: .35, sat: .75, tint: [-.03, -.01, .02], lift: .08, sun: .45,  amb: 1.12, cl: .34, wind: .15, rain: 0, fog: 0, cs: 1, top: C(.58, .65, .72), mid: C(.74, .79, .83), hor: C(.84, .87, .88) },
+  fog:    { dim: .2,  sat: .55, tint: [0, .01, .02],     lift: .3,  sun: .35,  amb: 1.2,  cl: .3,  wind: 0,   rain: 0, fog: 1, cs: .4, top: C(.76, .81, .83), mid: C(.83, .87, .88), hor: C(.9, .93, .93) },
+  rain:   { dim: .55, sat: .68, tint: [-.12, -.05, .08], lift: .05, sun: .28,  amb: .95,  cl: .3,  wind: .45, rain: 1, fog: 0, cs: 2, top: C(.4, .47, .56), mid: C(.55, .62, .68), hor: C(.7, .76, .79) },
+  wind:   { dim: 0,   sat: 1.12, tint: [-.01, .02, .04], lift: 0,   sun: 1.1,  amb: 1,    cl: .6,  wind: 1,   rain: 0, fog: 0, cs: 5, top: C(.3, .64, .95), mid: C(.68, .86, .95), hor: C(.86, .94, .95) }
+};
+const WEA = { kind: 'clear', lv: 1, snd: false, cx: 0, cur: null, tgt: null };
+function wxTarget(k, lv) {   // 強度 lv 調整：雨越大越暗越灰、風越強雲越快
+  const t = Object.assign({}, WX_PROF[k] || WX_PROF.clear); lv = Math.max(.2, Math.min(1, lv || 1));
+  if (k === 'rain') { t.rain = lv; t.dim = .35 + .3 * lv; t.sun = .4 - .15 * lv; t.sat = .8 - .15 * lv; }
+  if (k === 'wind') { t.wind = .5 + .5 * lv; t.cs = 2 + 4 * lv; }
+  return t;
+}
+{ const p = WX_PROF.clear; WEA.cur = { dim: p.dim, sat: p.sat, lift: p.lift, sun: p.sun, amb: p.amb, cl: p.cl, wind: p.wind, rain: 0, fog: 0, cs: p.cs, tint: p.tint.slice(), top: p.top.clone(), mid: p.mid.clone(), hor: p.hor.clone() }; WEA.tgt = wxTarget('clear', 1); }
+const wxFogEl = document.createElement('div');   // 霧：畫面中段一層淡白霧帶（沒有深度資料，用畫面疊色近似）
+wxFogEl.style.cssText = 'position:fixed;inset:0;pointer-events:none;opacity:0;z-index:3;background:linear-gradient(to bottom,rgba(232,238,238,.5) 0%,rgba(232,238,238,.12) 28%,rgba(232,238,238,.72) 50%,rgba(232,238,238,.28) 74%,rgba(232,238,238,.1) 100%)';
+document.body.appendChild(wxFogEl);
+function weatherSet(k, lv) { if (!WX_PROF[k]) return; WEA.kind = k; WEA.lv = lv || 1; WEA.tgt = wxTarget(k, WEA.lv); }
 function weatherFx(dt) {
-  const s = Math.min(1, dt * .8), f = (a, b) => a + (b - a) * s;
-  WEA.dim = f(WEA.dim, WEA.tDim); WEA.wind = f(WEA.wind, WEA.tWind); WEA.rain = f(WEA.rain, WEA.tRain);
-  UN.uWxDim.value = WEA.dim; UN.uWind.value = WEA.wind; sun.intensity = 1 - WEA.dim * .5;
+  const c = WEA.cur, t = WEA.tgt, s = Math.min(1, dt * .5), f = (a, b) => a + (b - a) * s;
+  ['dim', 'sat', 'lift', 'sun', 'amb', 'cl', 'wind', 'rain', 'fog', 'cs'].forEach(k => { c[k] = f(c[k], t[k]); });
+  for (let i = 0; i < 3; i++) c.tint[i] = f(c.tint[i], t.tint[i]);
+  c.top.lerp(t.top, s); c.mid.lerp(t.mid, s); c.hor.lerp(t.hor, s);
+  UN.uWxDim.value = c.dim; UN.uWxSat.value = c.sat - 1; UN.uWxLift.value = c.lift; UN.uWxTint.value.set(c.tint[0], c.tint[1], c.tint[2]); UN.uCl.value = c.cl; UN.uWind.value = c.wind;
+  SKY_TOP.copy(c.top); SKY_MID.copy(c.mid); HOR.copy(c.hor);
+  SUN_COL.copy(WX_BASE.sun).multiplyScalar(c.sun); sun.intensity = Math.max(.15, c.sun);
+  UN.uAmbU.value.copy(WX_BASE.ambU).multiplyScalar(c.amb); UN.uAmbM.value.copy(WX_BASE.ambM).multiplyScalar(c.amb); UN.uAmbD.value.copy(WX_BASE.ambD).multiplyScalar(c.amb);
+  wxFogEl.style.opacity = (c.fog * .85).toFixed(3); WEA.cx += dt * c.cs;
 }
 function weatherRain(now, u) {
   if (RAIN.on) { WEA.snd = false; return; }
-  if (WEA.rain > .02) {
-    RAIN.mesh.visible = true; u.uA.value = WEA.rain * .7;
+  const r = WEA.cur.rain;
+  if (r > .02) {
+    RAIN.mesh.visible = true; u.uA.value = r * .75;
     if (!WEA.snd) { WEA.snd = true; post({ tunein: 'snd', ev: 'rain', on: true }); }
-    if (Math.random() < .35) { const r = RAIN.rings[RAIN.ri++ % RAIN.rings.length]; r.t = now; r.m.position.set(me.obj.position.x + (Math.random() - .5) * 18, .06, me.obj.position.z + (Math.random() - .5) * 18); r.m.visible = true; }
+    if (Math.random() < .15 + .3 * r) { const g = RAIN.rings[RAIN.ri++ % RAIN.rings.length]; g.t = now; g.m.position.set(me.obj.position.x + (Math.random() - .5) * 18, .06, me.obj.position.z + (Math.random() - .5) * 18); g.m.visible = true; }
   } else { if (WEA.snd) { WEA.snd = false; post({ tunein: 'snd', ev: 'rain', on: false }); } if (RAIN.mesh.visible) RAIN.mesh.visible = false; }
 }
-addEventListener('message', e => { const d = e.data; if (d && d.tunein === 'weather' && ['clear', 'cloud', 'rain', 'wind'].includes(d.kind)) weatherSet(d.kind); });
-{ const q = new URLSearchParams(location.search).get('wx'); if (q) weatherSet(q); }
+addEventListener('message', e => { const d = e.data; if (d && d.tunein === 'weather') weatherSet(d.kind, +d.lv || 1); });
+{ const qp = new URLSearchParams(location.search), q = qp.get('wx'); if (q) weatherSet(q, +qp.get('lv') || 1); }
 function rainFx(now) {
   if (!RAIN.mesh) return; const u = RAIN.mesh.material.uniforms; u.uT.value = now / 1000; u.uC.value.set(me.obj.position.x, 0, me.obj.position.z);
   weatherRain(now, u);
@@ -1379,7 +1406,7 @@ function frame(now) {
   NPCS.forEach(n => { n.m.position.y = n.m.userData.by - .4 + Math.sin(now / 1000 * 3.2) * .12; if (n.obj.userData.mixer) n.obj.userData.mixer.update(dt); mkFrame(n, now, dt); }); mkFxFrame(now);
   { const p = me.obj.position; sun.target.position.set(Math.round(p.x / 2) * 2, 0, Math.round(p.z / 2) * 2); sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 90); }
   UN.uTime.value = now / 1000; try { dustFrame(now); } catch (e) { DUST.n = 0; } updateGrass(me.x, me.z); grassChunkFrame(me.x, me.z); fxFrame(now, dt); weatherFx(dt); spotFrame(now, dt); if (fr % 15 === 0) sndSend();
-  window.__sky.position.copy(cam.position); window.__skyMat.uniforms.t.value = now / 1000;
+  window.__sky.position.copy(cam.position); window.__skyMat.uniforms.t.value = WEA.cx;
   // 鏡頭（Unity CameraFollow）：在 Ping 後方 6.5 公尺、高 3.5 公尺，看向前方 3.5 公尺、高 1.2 公尺
   const fx = Math.sin(me.yaw), fz = Math.cos(me.yaw);
   const target = U(me.x - fx * CFG.camBack, CFG.camHeight, me.z - fz * CFG.camBack), look = U(me.x + fx * CFG.camLookAhead, 1.2, me.z + fz * CFG.camLookAhead);
