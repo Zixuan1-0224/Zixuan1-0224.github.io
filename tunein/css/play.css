@@ -1679,3 +1679,18 @@ body:not([data-screen="join"]) #verTag{display:none}
 .dlg-pg{display:flex;gap:6px;justify-content:center;margin:8px 0 2px;min-height:10px}
 .dlg-pg i{width:8px;height:8px;border-radius:50%;background:rgba(62,42,90,.25)}.dlg-pg i.on{background:#F2619C;width:20px;border-radius:99px}
 body:has(#sheet.dlgmode:not([hidden])) #cdots,body:has(#sheet.dlgmode:not([hidden])) .sdx-sh,body:has(#sheet.dlgmode:not([hidden])) #runBtn{display:none!important}   /* [P111] 對話卡開著時，只留對話卡 */
+
+/* ═════ [P119] 收納工具列：任務提示＋種花＋探測器合成一張卡（直式），可收合 ═════ */
+@media (orientation:portrait){
+  body.ufull .dockbar{position:relative;background:#FFFCEB;border:2px solid #3E2A5A;border-radius:24px;box-shadow:0 4px 0 #3E2A5A;padding:10px 12px 12px;margin:14px 8px max(8px,env(safe-area-inset-bottom,0px));gap:8px;width:auto;right:auto;top:auto}
+  body.ufull .dockbar>#guide{order:-3;grid-column:1/-1;position:static !important;transform:none !important;width:auto !important;max-width:none !important;min-width:0 !important;background:transparent !important;border:0 !important;box-shadow:none !important;padding:0 2px 2px !important;border-radius:0 !important}
+  body.ufull .dockbar .btn,body.ufull .dockbar #seedTray .sdx-go.big{min-height:52px !important;height:52px !important;font-size:16px !important}
+  body.ufull .dockbar.min>#guide{display:none !important}
+  body.tut .dockbar.min>#guide{display:flex !important}
+  #trayTg{position:absolute;right:14px;top:-17px;width:56px;height:34px;padding:0;display:grid;place-items:center;border:2px solid #3E2A5A;border-radius:999px;background:#FFFCEB;color:#3E2A5A;box-shadow:0 2px 0 #3E2A5A;z-index:7;-webkit-tap-highlight-color:transparent}
+  #trayTg::after{content:"";position:absolute;inset:-6px}
+  #trayTg svg{transition:transform .2s ease}
+  .dockbar.min #trayTg svg{transform:rotate(180deg)}
+  .dockbar.min{padding-top:12px}
+}
+@media (prefers-reduced-motion:reduce){#trayTg svg{transition:none}}

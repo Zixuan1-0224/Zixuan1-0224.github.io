@@ -1348,7 +1348,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=131&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=132&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1616,6 +1616,24 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       if (!d.on && TSND.rain) { const r = TSND.rain; TSND.rain = null; r.g.gain.setTargetAtTime(0, AC.currentTime, .6); setTimeout(() => { try { r.s.stop(); r.g.disconnect(); } catch (x) {} }, 2500); }
     }
   });
+  /* [P119] 收納工具列：直式時，任務提示（#guide）搬進下方工具列，和「種花」「探測器」同一張卡；右上小鈕可收合（教學中自動展開） */
+  setInterval(() => {
+    try {
+      const db = $('#dockbar'), g = $('#guide'), mw = $('#mapWrap'); if (!db || !g || !mw) return;
+      const want = document.body.classList.contains('ufull') && matchMedia('(orientation:portrait)').matches;
+      if (want && g.parentNode !== db) db.insertBefore(g, db.firstChild);
+      else if (!want && g.parentNode === db && mw.parentNode) mw.parentNode.insertBefore(g, mw);
+      let tg = $('#trayTg');
+      if (want && !tg) {
+        tg = document.createElement('button'); tg.id = 'trayTg'; tg.type = 'button'; tg.setAttribute('aria-label', '收合工具列'); tg.setAttribute('aria-expanded', 'true');
+        tg.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        tg.addEventListener('click', () => { const m = db.classList.toggle('min'); tg.setAttribute('aria-expanded', String(!m)); tg.setAttribute('aria-label', m ? '展開工具列' : '收合工具列'); try { sessionStorage.setItem('tunein.tray', m ? '1' : '0'); } catch (e) {} });
+        db.appendChild(tg); try { if (sessionStorage.getItem('tunein.tray') === '1') db.classList.add('min'); } catch (e) {}
+      }
+      if (tg) tg.hidden = !want;
+      if (document.body.classList.contains('tut')) db.classList.remove('min');
+    } catch (e) {}
+  }, 500);
   /* ═════════ [P89] 小鎮合奏：種下的聲音種類（伺服器 garden.kinds）越多，伴奏一層層加進來 ≥2 種＝節拍、≥4 種＝低音、≥6 種＝和弦；
      手機和 Unity 都以「牆鐘每 4 秒」為一格（Date.now()%4000），所以不同裝置的節拍會對在一起（誤差＝裝置時鐘差，通常 <50ms）。
      全用 Web Audio 合成，音量很小（不蓋過花的聲音）；只在小鎮畫面且已按「開始」時播放 ═════════ */
