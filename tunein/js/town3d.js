@@ -302,7 +302,7 @@ function buildGround(mask) {
 /* ═════════ [T05] Unity 模型（FBX → GLB）：倍率 = Unity 匯入的 Scale Factor ═════════ */
 const TREE_R = 1.7;   /* 大樹幹碰撞半徑（模型單位，調大＝擋更遠） */
 const MODELS = {
-  ping: { s: .8 }, blip: { s: .11 }, rowan: { s: .13 }, mouse: { s: .5 }, shop: { s: 1.5 }, cheese: { s: .5 },
+  ping: { s: .8 }, blip: { s: .11 }, rowan: { s: .13 }, mouse: { s: .32 }, shop: { s: 1.5 }, cheese: { s: .5 },
   tree: { s: 2.5 }, conifer: { s: 1 }, bench: { s: 1 }, stone: { s: .5 }, flower: { s: .08 }, bush: { s: 1 }, bird1: { s: .3 }, bird2: { s: .4 },
   home1: { s: 1 }, home2: { s: 1 }, mush1: { s: 1 }, mush2: { s: 1 },   // 房子、蘑菇：大小依 town_layout.json 的 props 外框高度決定
   mountain0: { s: 1 }, mountain1: { s: 1 }, mountain2: { s: 1 }   // 山：大小由 town_layout.json 的外框高度決定（見 placeMountains）
@@ -600,8 +600,8 @@ function buildWorld(L) {
       /* [P83] 房子、蘑菇都要有碰撞框：以外框置中後沿長邊排圓形（房子較大排多顆，蘑菇通常 1 顆） */
       { const bs = modelBox(k).s, cb = new THREE.Box3(new THREE.Vector3(-bs.x / 2, 0, -bs.z / 2), new THREE.Vector3(bs.x / 2, bs.y, bs.z / 2));
         rows.forEach(t => addBoxAsCircles(t[1], t[3], Math.PI - t[4] * Math.PI / 180, t[5] / gh, cb)); } }); }
-  if (M.bench) { instSet('bench', L.benches.map(t => ({ p: U(t[1], 0, t[3]), ry: -t[4] * Math.PI / 180, s: sc(t, MODELS.bench.s) })), 'bench', false, true);
-    const bb = modelBox('bench'); L.benches.forEach(t => addBoxAsCircles(t[1], t[3], -t[4] * Math.PI / 180, sc(t, MODELS.bench.s), bb.b)); }   // 長椅：依模型真實大小，沿長邊排幾顆圓形碰撞框
+  if (M.bench) { instSet('bench', L.benches.map(t => ({ p: U(t[1], 0, t[3]), ry: -t[4] * Math.PI / 180, s: sc(t, MODELS.bench.s, .2) })), 'bench', false, true);
+    const bb = modelBox('bench'); L.benches.forEach(t => addBoxAsCircles(t[1], t[3], -t[4] * Math.PI / 180, sc(t, MODELS.bench.s, .2), bb.b)); }   // 長椅：依模型真實大小，沿長邊排幾顆圓形碰撞框
   if (M.stone) { L.stones = L.stones.filter(t => !/Shadow/.test(t[0]));   // 名字帶 Shadow 的是接地陰影貼片，不是石頭
     instSet('stone', L.stones.map(t => ({ p: U(t[1], 0, t[3]), ry: t[4] * Math.PI / 180, s: sc(t, MODELS.stone.s) })), 'stone', false, true); const sz = modelBox('stone').s.x * MODELS.stone.s; L.stones.forEach(t => colliders.push({ x: t[1], z: t[3], r: sz * t[5] * .38 })); }
   if (L.mountains && L.mountains.length) placeMountains(L.mountains);
