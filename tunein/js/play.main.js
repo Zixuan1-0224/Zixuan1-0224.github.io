@@ -1302,7 +1302,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (now - NET.lastPoll < 500 || NET.busy) return; NET.lastPoll = now; NET.busy = true;
     const ac = new AbortController(), to = setTimeout(() => ac.abort(), 3000);
     try {
-      const tq = Date.now(), s2 = await (await fetch(NET.api + '/state?lite=1', { cache: 'no-store', signal: ac.signal })).json(); if (!s2) return; try { gardenSync(s2.garden); } catch (e) {} try { window.__env = (s2.weather && s2.weather.env) || null; window.__fin = !!s2.finale; } catch (e) {} try { ensSync(s2.garden); } catch (e) {} try { weatherSync(s2.weather); } catch (e) {} try { if (s2.residents) resSync(s2.residents); } catch (e) {}
+      const tq = Date.now(), s2 = await (await fetch(NET.api + '/state?lite=1', { cache: 'no-store', signal: ac.signal })).json(); if (!s2) return; try { gardenSync(s2.garden); } catch (e) {} try { window.__env = (s2.weather && s2.weather.env) || null; window.__envRaw = (s2.weather && s2.weather.raw) || null; window.__fin = !!s2.finale; } catch (e) {} try { ensSync(s2.garden); } catch (e) {} try { weatherSync(s2.weather); } catch (e) {} try { if (s2.residents) resSync(s2.residents); } catch (e) {}
       if (s2.active && s2.roundEnd && s2.now && S.started && !S.ended) {   // 每次輪詢都對一次伺服器的剩餘時間：後來加入的人、手機時鐘不準，倒數都會一致
         const left = s2.roundEnd - s2.now - (Date.now() - tq) / 2, mine = S.roundEnd - Date.now();
         if (left > 0 && left <= ROUND_MS + 2000 && Math.abs(mine - left) > 1500) { S.roundEnd = Date.now() + left; try { tickRound(); } catch (e) {} }
@@ -1477,7 +1477,8 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   }
   function tnDone() {
     const sp = TN.sp; const sd = seedsGet(); sd.push({ k: sp.k, l: 'f' }); seedsSet(sd); toTown({ tunein: 'spotTake', id: sp.id }); tnClose();
-    cuePlay(sp.k); seedFly(); toast('收下了：' + sp.name + (sp.egg ? '　' + (sp.npc ? sp.npc + '：' : '') + sp.egg : '，變成種子了'), 'ok', sp.egg ? 6200 : 3000); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
+    cuePlay(sp.k); seedFly(); let live = ''; try { const e = window.__env || {}, rw = window.__envRaw || {}; if (sp.k === 'fire' && rw.qmag) live = '　今天台灣附近有 M' + (+rw.qmag).toFixed(1) + ' 的地震，土裡多了一聲咚。'; else if (rw.pm25 != null && sp.k === 'chime') live = '　現在 PM2.5 是 ' + Math.round(rw.pm25) + '，' + (rw.pm25 < 15 ? '空氣很乾淨，聲音特別亮。' : '聲音有一點悶悶的。'); } catch (x) {}
+    toast('收下了：' + sp.name + (sp.egg ? '　' + (sp.npc ? sp.npc + '：' : '') + sp.egg : '，變成種子了') + live, 'ok', sp.egg ? 6800 : 3000); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
     try { trayRender(); } catch (e) {}
   }
   function detSet(on) {
@@ -1621,11 +1622,13 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function ensSched() {
     if (!ENS.tier || !ENS.on || document.hidden) return; let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
     if (AC.state === 'suspended') { try { AC.resume(); } catch (x) {} return; }
-    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55; ENS.out.connect(AC.destination); }
+    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55; ENS.lp = AC.createBiquadFilter(); ENS.lp.type = 'lowpass'; ENS.lp.frequency.value = 12000; ENS.out.connect(ENS.lp); ENS.lp.connect(AC.destination); }
+    { const e = window.__env || {}; ENS.lp.frequency.setTargetAtTime(11000 - 7500 * (e.pm || 0), AC.currentTime, .5); }   /* [P100] PM2.5 越高聲音越悶，空氣乾淨就清澈 */
     const wall = Date.now(), acNow = AC.currentTime; let bi = Math.max(ENS.nextB || 0, Math.floor(wall / BAR));
     for (; bi * BAR < wall + 600; bi++) {
       ENL.slice(0, ENS.tier).forEach(L => L.bars[bi % 4].forEach(e => { const t = acNow + (bi * BAR + e.at * BAR - wall) / 1000; if (t < acNow) return; e.notes.forEach(f => ensVoice(L.id, t, f, e.dur * BAR / 1000)); }));
     }
+    { const e = window.__env || {}; if ((e.qk || 0) > .02) for (let b2 = Math.max(ENS.nextQ || 0, Math.floor(wall / BAR)); b2 * BAR < wall + 600; b2++) { if (b2 % 4 === 0) { const t = acNow + (b2 * BAR - wall) / 1000; if (t >= acNow) ensVoice('tree', t, 49, .6); } ENS.nextQ = b2 + 1; } }   /* [P100] 台灣附近有地震：每 4 小節在小節頭多一個低低的「咚」 */
     ENS.nextB = bi;
   }
   function ensSync(g) {   // gardenSync 每次輪詢呼叫：層數變高時提醒一次
