@@ -1591,10 +1591,10 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     const d = e.data; if (!d || d.tunein !== 'snd') return;
     let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
     try { if (AC.state === 'suspended') AC.resume(); SYN.bind(AC); } catch (x) {}
-    if (!TSND.out) { TSND.out = AC.createGain(); TSND.out.gain.value = .8; TSND.out.connect(AC.destination); }
+    if (!TSND.out) { TSND.out = AC.createGain(); TSND.out.gain.value = 1.15; try { const cp = AC.createDynamicsCompressor(); cp.threshold.value = -10; cp.knee.value = 10; cp.ratio.value = 5; cp.attack.value = .004; cp.release.value = .2; TSND.out.connect(cp); cp.connect(AC.destination); } catch (e) { TSND.out.connect(AC.destination); } }   /* [P110] 收集用的聲音再大聲一點，加壓縮器防破音 */
     if (d.list) {
       const seen = {};
-      d.list.forEach(it => { seen[it.id] = 1; let s = TSND.sl[it.id]; if (!s) { const g = AC.createGain(); g.gain.value = 0; g.connect(TSND.out); let dst = g, f = null, pn = null; if (it.pan !== undefined && AC.createStereoPanner) { pn = AC.createStereoPanner(); pn.connect(g); dst = pn; } if (it.lp) { f = AC.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = .7; f.frequency.value = it.lp; f.connect(dst); dst = f; } s = TSND.sl[it.id] = { g, f, pn, slot: {} }; try { SYN.loop(it.k, dst, s.slot); } catch (x) {} } const tune = TN.on && it.id === 'sp_' + TN.id; if (s.pn && it.pan !== undefined) s.pn.pan.setTargetAtTime(it.pan, AC.currentTime, .1); if (s.f && it.lp) s.f.frequency.setTargetAtTime(tune ? tnLp(TN.c) : it.lp, AC.currentTime, .25); s.g.gain.setTargetAtTime(tune ? tnGain(TN.c) : it.g, AC.currentTime, .25); });
+      d.list.forEach(it => { seen[it.id] = 1; let s = TSND.sl[it.id]; if (!s) { const g = AC.createGain(); g.gain.value = 0; g.connect(TSND.out); let dst = g, f = null, pn = null; if (it.pan !== undefined && AC.createStereoPanner) { pn = AC.createStereoPanner(); pn.connect(g); dst = pn; } if (it.lp) { f = AC.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = .7; f.frequency.value = it.lp; f.connect(dst); dst = f; } s = TSND.sl[it.id] = { g, f, pn, slot: {} }; try { SYN.loop(it.k, dst, s.slot); } catch (x) {} } const tune = TN.on && it.id === 'sp_' + TN.id; if (s.pn && it.pan !== undefined) s.pn.pan.setTargetAtTime(it.pan, AC.currentTime, .1); if (s.f && it.lp) s.f.frequency.setTargetAtTime(tune ? tnLp(TN.c) : it.lp, AC.currentTime, .25); s.tg = tune ? tnGain(TN.c) : it.g; s.sp = it.id.indexOf('sp_') === 0; focusTick(); });
       Object.keys(TSND.sl).forEach(k => { if (!seen[k]) { const s = TSND.sl[k]; try { SYN.halt(s.slot); s.g.disconnect(); } catch (x) {} delete TSND.sl[k]; } });
     }
     if (d.ev === 'appear') {   /* Ping 出現：三顆上行的亮晶晶小音 */
@@ -1642,7 +1642,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function ensSched() {
     if (!ENS.tier || !ENS.on || document.hidden) return; let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
     if (AC.state === 'suspended') { try { AC.resume(); } catch (x) {} return; }
-    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55; ENS.lp = AC.createBiquadFilter(); ENS.lp.type = 'lowpass'; ENS.lp.frequency.value = 12000; ENS.out.connect(ENS.lp); ENS.lp.connect(AC.destination); }
+    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55 * (1 - .8 * ((typeof PFX !== 'undefined' && PFX.v) || 0)); ENS.lp = AC.createBiquadFilter(); ENS.lp.type = 'lowpass'; ENS.lp.frequency.value = 12000; ENS.out.connect(ENS.lp); ENS.lp.connect(AC.destination); }
     { const e = window.__env || {}; ENS.lp.frequency.setTargetAtTime(11000 - 7500 * (e.pm || 0), AC.currentTime, .5); }   /* [P100] PM2.5 越高聲音越悶，空氣乾淨就清澈 */
     const wall = Date.now(), acNow = AC.currentTime; let bi = Math.max(ENS.nextB || 0, Math.floor(wall / BAR));
     for (; bi * BAR < wall + 600; bi++) {
@@ -1931,6 +1931,19 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       [['q', 'gq'], ['l', 'gl']].forEach(p => { const s = TM.ctx.createMediaElementSource(TM[p[0]]); TM[p[1]] = TM.ctx.createGain(); TM[p[1]].gain.value = 0; s.connect(TM[p[1]]); TM[p[1]].connect(TM.ctx.destination); }); } catch (e) { TM.gq = TM.gl = null; }
   }
   function tmSet(vq, vl) { try { if (TM.gq) { TM.gq.gain.value = vq; TM.gl.gain.value = vl; } else { TM.q.volume = Math.max(0, Math.min(1, vq)); TM.l.volume = Math.max(0, Math.min(1, vl)); } } catch (e) {} }
+  /* [P110] 聲音優先：探測器開著而且聽得到聲音點、或正在調清楚時，背景音樂／合奏／別人的花都壓低，讓要收集的聲音站在最前面 */
+  const PFX = { v: 0, t: 0 };
+  function focusTick() {
+    try {
+      let want = 0; if (TN.on) want = 1; else if (DETS.on) { for (const k in TSND.sl) { const s = TSND.sl[k]; if (s.sp && (s.tg || 0) > .12) { want = Math.max(want, Math.min(1, .55 + (s.tg || 0) * .5)); } } }
+      PFX.t = want; PFX.v += (want - PFX.v) * (want > PFX.v ? .35 : .12);
+      if (Math.abs(PFX.v - want) < .01) PFX.v = want;
+      if (!AC) return; const now = AC.currentTime;
+      for (const k in TSND.sl) { const s = TSND.sl[k]; if (TN.on && k === 'sp_' + TN.id) continue; const m = s.sp ? 1 + .45 * PFX.v : 1 - .8 * PFX.v; s.g.gain.setTargetAtTime((s.tg || 0) * m, now, .2); }
+      if (ENS.out) ENS.out.gain.setTargetAtTime(.55 * (1 - .8 * PFX.v), now, .25);
+    } catch (e) {}
+  }
+  setInterval(focusTick, 150);
   function tmTick() {
     try {
       const on = BGM.ok && !document.hidden && S.started && !S.ended && bgmOwn();   /* [P107] 只留安靜版（歡樂版整首拿掉）；隨合奏層數退場 */
@@ -1940,7 +1953,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       if (on) { [TM.q].forEach(x => { if (x.paused) { const pr = x.play(); if (pr && pr.catch) pr.catch(() => {}); } }); }
       const loud = (typeof GP !== 'undefined' && GP && GP.loud) || 0, x0 = Math.max(0, Math.min(1, (loud / 100 - .25) / .45)), kt = x0 * x0 * (3 - 2 * x0);
       TM.k += (kt - TM.k) * .08;
-      const duck = (DETS.on ? .6 : 1) * Math.max(0, 1 - ((ENS && ENS.tier) || 0) * .34);   /* [P105] 合奏一層層加入時，背景音樂跟著退場（3 層以上全退），不再和合奏打架 */
+      const duck = (DETS.on ? .6 : 1) * Math.max(0, 1 - ((ENS && ENS.tier) || 0) * .34) * (1 - .9 * PFX.v);   /* [P105] 合奏一層層加入時，背景音樂跟著退場（3 層以上全退），不再和合奏打架 */
       tmSet(.55 * TM.a * duck * (1 - TM.k), 0);   /* 歡樂版不播 */
       if (!on && TM.a <= 0) [TM.q, TM.l].forEach(x => { if (!x.paused) x.pause(); });
     } catch (e) {}
