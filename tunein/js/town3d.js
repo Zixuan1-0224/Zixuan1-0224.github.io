@@ -68,7 +68,7 @@ vec3 uGrade(vec3 c){
   g = uSoftLight(g, mix(vec3(.5), vec3(.3098,.5608,.6510), 1.-t));
   g = uSoftLight(g, mix(vec3(.5), vec3(1.,.9020,.7098), t));
   g = g*vec3(.70,.68,.66) + vec3(.20,.20,.17);   /* [P82] 對齊 Unity 實測：草(150,195,118)／路(223,208,153) */
-  g = g*vec3(.83,.81,.79) + vec3(-.035,.01,-.01); { float lg = dot(g, vec3(.2126,.7152,.0722)); g = mix(vec3(lg), g, 1.18); }   /* [P85/P88] 手機實拍比對（含光暈）：網頁整體偏亮偏白，RGB 平均比 Unity 高 R+32／G+14／B+30、飽和 .26 vs .34 → 墊高量拿掉、飽和 1.18、光暈 .32→.18 */
+  g = g*vec3(.83,.81,.79) + vec3(-.035,.01,-.01); { float lg = dot(g, vec3(.2126,.7152,.0722)); g = mix(vec3(lg), g, 1.0); } g = g*vec3(1.10,1.0,1.10) + vec3(.05,.035,.07);   /* [P89] 草地實測：網頁 (102,170,77)／飽和.57 vs Unity (154,187,127)／.36 → 降飽和、墊高紅藍 */   /* [P85/P88] 手機實拍比對（含光暈）：網頁整體偏亮偏白，RGB 平均比 Unity 高 R+32／G+14／B+30、飽和 .26 vs .34 → 墊高量拿掉、飽和 1.18、光暈 .32→.18 */
   return pow(clamp(g, 0., 1.), vec3(2.2));
 }
 float uHash3(vec3 p){ p = fract(p*.3183099 + .1); p *= 17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
@@ -83,7 +83,7 @@ const f1 = x => (+x).toFixed(5);
 const FOG_N = 140, FOG_F = 330;
 
 /* ═════════ [T22] 光暈（Unity Bloom 的近似：強度 .45／門檻 .85／散射 .7）：把畫面縮小複製一份，用 CSS 取亮部＋模糊＋「濾色」疊回去；很省效能，要關或調整改 BLOOM ═════════ */
-const BLOOM = { on: true, opacity: .18, every: 2, scale: 5 };   // opacity 光暈強度（0 無～1 很夢幻）／every 每幾張畫面更新一次／scale 縮小倍數（越大越省）
+const BLOOM = { on: true, opacity: .18, every: /[?&]t=1|Mobi|Android|iPhone|iPad/.test(navigator.userAgent) ? 5 : 2, scale: 6 };   /* [P89] 手機：WebGL→2D canvas 複製很貴，改每 5 張更新一次、縮小 6 倍 */   // opacity 光暈強度（0 無～1 很夢幻）／every 每幾張畫面更新一次／scale 縮小倍數（越大越省）
 let glowCv = null, glowCx = null, glowN = 0;
 function glowFrame() {
   if (!BLOOM.on) return; if (!glowCv) { glowCv = document.createElement('canvas'); glowCv.id = 'glow'; glowCv.style.opacity = BLOOM.opacity; document.body.appendChild(glowCv); glowCx = glowCv.getContext('2d'); }
@@ -93,7 +93,7 @@ function glowFrame() {
 }
 /* ═════════ [T03] 渲染 ═════════ */
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+const IS_TOUCH = matchMedia('(pointer:coarse)').matches; renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_TOUCH ? 1.6 : 2));   /* [P89] 手機起始像素比 ≤1.6（原 2＝像素 1.6 倍），再由 qGov 依實際幀率自動降 */
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1059,7 +1059,7 @@ function rainTrigger() { if (!RAIN.mesh) return; RAIN.on = true; RAIN.t0 = perfo
 const WX_BASE = { sun: SUN_COL.clone(), ambU: UN.uAmbU.value.clone(), ambM: UN.uAmbM.value.clone(), ambD: UN.uAmbD.value.clone() };
 const WX_PROF = {   // dim 變暗／sat 飽和度／tint 色偏／lift 霧白／sun 太陽強度(倍)／amb 環境光(倍)／cl 雲量門檻(越低雲越多)／wind 風／rain 雨／fog 霧罩／cs 雲速
   clear:  { dim: .1,  sat: 1,   tint: [1, 1, 1],         lift: 0,   sun: 1,    amb: 1,    cl: .66, wind: .1,  rain: 0, fog: 0, cs: 1, top: C(.26, .56, .86), mid: C(.56, .74, .88), hor: C(.80, .89, .90) },
-  partly: { dim: .2,  sat: 1.02, tint: [1, 1, 1],        lift: 0,   sun: .8,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.30, .55, .82), mid: C(.58, .74, .86), hor: C(.80, .88, .90) },
+  partly: { dim: .12, sat: 1.0,  tint: [1, 1, 1],        lift: 0,   sun: .92,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.40, .62, .86), mid: C(.68, .81, .90), hor: C(.87, .93, .94) },
   cloud:  { dim: .35, sat: .75, tint: [-.03, -.01, .02], lift: .08, sun: .45,  amb: 1.12, cl: .34, wind: .15, rain: 0, fog: 0, cs: 1, top: C(.58, .65, .72), mid: C(.74, .79, .83), hor: C(.84, .87, .88) },
   fog:    { dim: .2,  sat: .55, tint: [0, .01, .02],     lift: .3,  sun: .35,  amb: 1.2,  cl: .3,  wind: 0,   rain: 0, fog: 1, cs: .4, top: C(.76, .81, .83), mid: C(.83, .87, .88), hor: C(.9, .93, .93) },
   rain:   { dim: .55, sat: .68, tint: [-.12, -.05, .08], lift: .05, sun: .28,  amb: .95,  cl: .3,  wind: .45, rain: 1, fog: 0, cs: 2, top: C(.4, .47, .56), mid: C(.55, .62, .68), hor: C(.7, .76, .79) },
@@ -1418,6 +1418,21 @@ function checkNear() {
 /* ═════════ [T20] 主迴圈 ═════════ */
 let READY_AT = 0, readySent = false, meAppeared = false; const WD = { t: 0 };
 let last = performance.now(), fr = 0, camOverride = null, shot = null;
+/* [P89] 自動畫質（卡就降、不升回，避免忽高忽低）：每 2 秒看平均幀率，低於 45 fps 依序 ①像素比降到 1.25／1 ②陰影圖 1024 ③關光暈；?q=0 關閉 */
+const QG = { on: !/[?&]q=0/.test(location.search), t0: 0, n: 0, lv: 0, warm: 0 };
+function qGov(now, dt) {
+  if (!QG.on || document.hidden) return; if (dt > .2) return;
+  if (++QG.warm < 90) return;   // 前 90 張（載入、編譯 shader）不算
+  QG.n++; QG.sum = (QG.sum || 0) + dt; if (!QG.t0) QG.t0 = now; if (now - QG.t0 < 2000) return;
+  const fps = QG.n / QG.sum; QG.t0 = 0; QG.n = 0; QG.sum = 0; QG.fps = Math.round(fps); if (fps >= 45 || QG.lv >= 3) return;
+  QG.lv++;
+  if (QG.lv === 1) renderer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1.25));
+  else if (QG.lv === 2) { renderer.setPixelRatio(1); sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+  else if (QG.lv === 3) { BLOOM.on = false; if (glowCv) glowCv.style.display = 'none'; }
+  resize();
+  post({ tunein: 'perf', lv: QG.lv, fps: QG.fps });
+}
+
 function frame(now) {
   const dt = Math.min(.05, (now - last) / 1000); last = now; fr++;
   if (GATE && now - (CTLDBG.t || 0) > 700) { CTLDBG.t = now; const sg = [CTLDBG.n, +!!appearGo, +!!spawned, +!!meAppeared, me && me.lockUntil > now ? 1 : 0, ctl.fwd, ctl.turn, TK.on ? 1 : 0, Math.round(me ? me.x : 0), Math.round(me ? me.z : 0)].join(','); if (sg !== CTLDBG.last) { CTLDBG.last = sg; post({ tunein: 'dbg', s: 'n=' + CTLDBG.n + ' go=' + +!!appearGo + ' pid=' + +!!PID + ' sp=' + +!!spawned + ' ap=' + +!!meAppeared + ' lock=' + (me && me.lockUntil > now ? 1 : 0) + ' f=' + ctl.fwd + ' t=' + ctl.turn + ' talk=' + (TK.on ? 1 : 0) + ' x=' + (me ? me.x.toFixed(1) : '-') + ' z=' + (me ? me.z.toFixed(1) : '-') }); } }
@@ -1452,7 +1467,7 @@ function frame(now) {
   if (camOverride) { cam.position.copy(camOverride.p); cam.lookAt(camOverride.l); } else { cam.position.copy(camPos); cam.lookAt(camLook); }
   // 遠處的區塊整組不畫
   /* 區塊不再依距離整組關掉（整張地圖才 270 公尺，關掉會在遠處突然冒出來）；看不到的由 three 的視錐剔除自動略過 */
-  renderer.render(scene, cam); glowFrame(); requestAnimationFrame(frame);
+  renderer.render(scene, cam); glowFrame(); qGov(now, dt); requestAnimationFrame(frame);
   if (!readySent && READY_AT && fr >= READY_AT) { readySent = true; ownTryAppear(); document.getElementById('load').hidden = true; parent.postMessage({ tunein: 'ready' }, '*'); }
 }
 

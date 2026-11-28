@@ -1578,3 +1578,10 @@ body.ufull #seedTray.open .sdx-go.ghost{background:#fff;border:2px solid rgba(62
 #flwCard .fcB button{flex:1;min-height:44px;padding:0 8px;border:2px solid #3E2A5A;border-radius:14px;background:#fff;color:#3E2A5A;font:inherit;font-size:15px;touch-action:manipulation;cursor:pointer}
 #flwCard .fcB button.on,#flwCard .fcB button.pri{background:#F2619C;color:#fff}
 @media (prefers-reduced-motion:reduce){#flwCard{animation:none}}
+
+/* [P89] UI 守則修正：①停用／充電中的按鈕對比不足（opacity .55 → 實色底＋深紫字，對比 ≥7:1）②種花小卡改精簡單排、放畫面上方，不蓋角色與方向鍵（費茲：拇指區留給方向鍵） */
+.btn.cool,#btnDet:disabled{opacity:1;background:#E7DFF3;color:#3E2A5A;border-color:#3E2A5A}
+#flwCard{padding:8px 10px;gap:6px;border-radius:16px;box-shadow:0 2px 0 #E7BEF8,0 6px 14px rgba(62,42,90,.16)}
+#flwCard .fcT b{font-size:16px}
+#flwCard .fcT span{font-size:14px;opacity:1;color:#5A4A78}
+#flwCard .fcB button{min-height:44px;font-size:16px}

@@ -1272,7 +1272,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (now - NET.lastPoll < 500 || NET.busy) return; NET.lastPoll = now; NET.busy = true;
     const ac = new AbortController(), to = setTimeout(() => ac.abort(), 3000);
     try {
-      const tq = Date.now(), s2 = await (await fetch(NET.api + '/state?lite=1', { cache: 'no-store', signal: ac.signal })).json(); if (!s2) return; try { gardenSync(s2.garden); } catch (e) {} try { weatherSync(s2.weather); } catch (e) {} try { if (s2.residents) resSync(s2.residents); } catch (e) {}
+      const tq = Date.now(), s2 = await (await fetch(NET.api + '/state?lite=1', { cache: 'no-store', signal: ac.signal })).json(); if (!s2) return; try { gardenSync(s2.garden); } catch (e) {} try { ensSync(s2.garden); } catch (e) {} try { weatherSync(s2.weather); } catch (e) {} try { if (s2.residents) resSync(s2.residents); } catch (e) {}
       if (s2.active && s2.roundEnd && s2.now && S.started && !S.ended) {   // 每次輪詢都對一次伺服器的剩餘時間：後來加入的人、手機時鐘不準，倒數都會一致
         const left = s2.roundEnd - s2.now - (Date.now() - tq) / 2, mine = S.roundEnd - Date.now();
         if (left > 0 && left <= ROUND_MS + 2000 && Math.abs(mine - left) > 1500) { S.roundEnd = Date.now() + left; try { tickRound(); } catch (e) {} }
@@ -1303,7 +1303,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=100&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=102&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1476,7 +1476,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function fcOk() { return U.m === 1 && S.started && !S.ended && document.body.classList.contains('ufull') && !document.body.classList.contains('tut') && !document.body.classList.contains('cine') && !(typeof TN !== 'undefined' && TN.on) && !(typeof TR !== 'undefined' && TR.open); }
   function fcEl() { if (FC.el) return FC.el; const el = document.createElement('div'); el.id = 'flwCard'; el.hidden = true; document.body.appendChild(el);
     el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; fcAct(b.getAttribute('data-a'), b.getAttribute('data-k')); }); return (FC.el = el); }
-  function fcPlace() { const f = $('#uFrame'), el = FC.el; if (!f || !el) return; const r = f.getBoundingClientRect(); if (r.width < 40) return; el.style.left = (r.left + 16) + 'px'; el.style.width = (r.width - 32) + 'px'; el.style.top = 'auto'; el.style.bottom = Math.max(8, window.innerHeight - r.bottom + 160) + 'px'; }
+  function fcPlace() { const f = $('#uFrame'), el = FC.el; if (!f || !el) return; const r = f.getBoundingClientRect(); if (r.width < 40) return; el.style.left = (r.left + 16) + 'px'; el.style.width = (r.width - 32) + 'px'; el.style.bottom = 'auto'; el.style.top = Math.round(r.top + 104) + 'px'; }   /* [P89] 小卡放畫面上方（原本在下方會蓋住 Ping 與方向鍵）：熱鬧度膠囊下方、不擋角色 */
   function fcRender() {
     const el = fcEl(), c = FC.cur; if (!c || c.id < 0 || !fcOk()) { el.hidden = true; return; }
     let h;
@@ -1524,6 +1524,33 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       if (!d.on && TSND.rain) { const r = TSND.rain; TSND.rain = null; r.g.gain.setTargetAtTime(0, AC.currentTime, .6); setTimeout(() => { try { r.s.stop(); r.g.disconnect(); } catch (x) {} }, 2500); }
     }
   });
+  /* ═════════ [P89] 小鎮合奏：種下的聲音種類（伺服器 garden.kinds）越多，伴奏一層層加進來 ≥2 種＝節拍、≥4 種＝低音、≥6 種＝和弦；
+     手機和 Unity 都以「牆鐘每 4 秒」為一格（Date.now()%4000），所以不同裝置的節拍會對在一起（誤差＝裝置時鐘差，通常 <50ms）。
+     全用 Web Audio 合成，音量很小（不蓋過花的聲音）；只在小鎮畫面且已按「開始」時播放 ═════════ */
+  const ENS = { tier: 0, out: null, nextK: 0, tm: 0, on: false };
+  function ensTier(k) { return k >= 6 ? 3 : k >= 4 ? 2 : k >= 2 ? 1 : 0; }
+  function ensNote(t, f, dur, vol, type) { const o = AC.createOscillator(), g = AC.createGain(); o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .02); g.gain.exponentialRampToValueAtTime(.0008, t + dur); o.connect(g); g.connect(ENS.out); o.start(t); o.stop(t + dur + .05); }
+  function ensKick(t) { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + .14); g.gain.setValueAtTime(.32, t); g.gain.exponentialRampToValueAtTime(.001, t + .22); o.connect(g); g.connect(ENS.out); o.start(t); o.stop(t + .25); }
+  function ensHat(t) { const n = Math.floor(AC.sampleRate * .04), b = AC.createBuffer(1, n, AC.sampleRate), c = b.getChannelData(0); for (let i = 0; i < n; i++) c[i] = (Math.random() * 2 - 1) * Math.exp(-i / (n * .25)); const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = b; f.type = 'highpass'; f.frequency.value = 6500; g.gain.value = .07; s.connect(f); f.connect(g); g.connect(ENS.out); s.start(t); }
+  function ensSched() {
+    if (!ENS.tier || !ENS.on || document.hidden) return; let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
+    if (AC.state === 'suspended') { try { AC.resume(); } catch (x) {} return; }
+    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55; ENS.out.connect(AC.destination); }
+    const wall = Date.now(), acNow = AC.currentTime, STEP = 250;   // 一格 = 250 ms（一個 16 分音符）；4 秒 = 16 格
+    let k = Math.max(ENS.nextK, Math.ceil(wall / STEP));
+    for (; k * STEP < wall + 450; k++) {
+      const t = acNow + (k * STEP - wall) / 1000; if (t < acNow) continue; const bar = k % 16;
+      if (ENS.tier >= 1) { if (bar % 4 === 0) ensKick(t); if (bar % 2 === 1) ensHat(t); }
+      if (ENS.tier >= 2 && bar % 4 === 0) { const f = [65.41, 65.41, 98, 87.31][bar / 4]; ensNote(t, f, .9, .16, 'triangle'); }
+      if (ENS.tier >= 3 && bar === 0) { [261.63, 329.63, 392].forEach(f => ensNote(t, f, 3.6, .05, 'sine')); }
+    }
+    ENS.nextK = k;
+  }
+  function ensSync(g) {   // gardenSync 每次輪詢呼叫：層數變高時提醒一次
+    if (!g) return; const t = ensTier(g.kinds | 0); ENS.on = U.m === 1 && S.started && !S.ended;
+    if (t !== ENS.tier) { const up = t > ENS.tier; ENS.tier = t; ENS.nextK = 0; if (up && ENS.on) toast(t === 1 ? '小鎮有了節拍' : t === 2 ? '低音加入了，小鎮在合奏' : '和弦鋪滿了小鎮', '', 2600); }
+    if (!ENS.tm) ENS.tm = setInterval(ensSched, 120);
+  }
   const U = { m: 0 };   // 0 關閉　1 全螢幕＋方向鍵（Unity 管我的 Ping）　2 小窗
   function uSet(m) {
     const w = $('#mapWrap'), f = $('#uFrame'), d = $('#dpad'); if (!w || !f || m === U.m) return; const prev = U.m; U.m = m; uMode = m;
