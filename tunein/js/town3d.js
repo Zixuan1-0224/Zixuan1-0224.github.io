@@ -39,14 +39,14 @@ const SUN_DIR = new THREE.Vector3(-0.643, 0.669, 0.371).normalize();            
 const HOR = C(.894, .945, .937), SKY_TOP = C(.361, .678, .922), SKY_MID = C(.725, .867, .933), SKY_GND = C(.659, .812, .722);   // Sky_Pink.mat
 const TINT_SAT = 1.6;   /* Ping 染色飽和度：要和 Unity Player_Toon 的 _TintSat、選色頁預覽（play.main.js SOFT.sat）一致 */
 const UN = {   // 環境光：Unity 用天空做 SH；這裡用天空三色近似（天頂／中段／地面）
-  uSun: { value: SUN_COL }, uTime: { value: 0 },
+  uSun: { value: SUN_COL }, uTime: { value: 0 }, uWxDim: { value: 0 }, uWind: { value: 0 },
   uAmbU: { value: C(.50, .75, .93).multiplyScalar(.9) }, uAmbM: { value: C(.76, .88, .93).multiplyScalar(.9) }, uAmbD: { value: C(.66, .81, .72).multiplyScalar(.8) }
 };
 
 /* 後製（PostFX_Atmosphere）：Neutral 色調映射、曝光 +0.05、對比 +18、飽和 +14、暗部偏青／亮部偏暖、色溫 +8；暈影在 CSS */
 const GLSL_COMMON = `
 uniform vec3 uSun, uAmbU, uAmbM, uAmbD;
-uniform float uTime;
+uniform float uTime, uWxDim, uWind;
 float uLum(vec3 c){ return dot(c, vec3(.2126,.7152,.0722)); }
 vec3 uAmb(vec3 n){ float y = n.y; return mix(uAmbD, mix(uAmbM, uAmbU, smoothstep(0.,1.,y)), smoothstep(-1.,0.,y)); }
 vec3 uSoftLight(vec3 b, vec3 s){ vec3 r1 = 2.*b*s + b*b*(1.-2.*s); vec3 r2 = sqrt(b)*(2.*s-1.) + 2.*b*(1.-s); return vec3(s.r<.5?r1.r:r2.r, s.g<.5?r1.g:r2.g, s.b<.5?r1.b:r2.b); }
@@ -58,6 +58,7 @@ vec3 uNeutral(vec3 c){
   float g = 1. - 1./(.15*(peak - np) + 1.); return mix(c, vec3(np), g);
 }
 vec3 uGrade(vec3 c){
+  c = mix(c, vec3(uLum(c))*vec3(.84,.9,1.), uWxDim*.7) * (1. - uWxDim*.22);   // [W03] 陰雨：變灰、變暗
   c = max(c, vec3(0.)) * exp2(.05) * vec3(1.03, 1., .965);
   c = .18 * pow(max(c, vec3(1e-4))/.18, vec3(1.18));
   float l = uLum(c); c = max(vec3(l) + (c - vec3(l))*1.14, vec3(0.));
@@ -218,8 +219,8 @@ function unityMat(P, opt) {
   const defs = unityDefs(P);
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, UN); if (P.tone) { sh.uniforms.uToneMap = { value: T.ping_tone }; sh.uniforms.uTintMask = { value: T.ping_mask }; } if (P.kind === 'ground') sh.uniforms.uPath = { value: PATH_TEX };
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP;' + (P.kind === 'grass' ? '\nuniform float uTime;' : ''))
-      .replace('#include <begin_vertex>', '#include <begin_vertex>' + (P.kind === 'grass' ? '\n{ vec3 o = (modelMatrix * instanceMatrix * vec4(0.,0.,0.,1.)).xyz; float dd = distance(o, cameraPosition); transformed *= 1. - smoothstep(30., 40., dd); float hh = color.r; transformed.x += sin(uTime*1.2 + o.x*.6 + o.z*.4)*hh*hh*.07; transformed.z += cos(uTime*1.0 + o.x*.4 + o.z*.6)*hh*hh*.05; }' : ''))
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP;' + (P.kind === 'grass' ? '\nuniform float uTime, uWind;' : ''))
+      .replace('#include <begin_vertex>', '#include <begin_vertex>' + (P.kind === 'grass' ? '\n{ vec3 o = (modelMatrix * instanceMatrix * vec4(0.,0.,0.,1.)).xyz; float dd = distance(o, cameraPosition); transformed *= 1. - smoothstep(30., 40., dd); float hh = color.r; float wa = 1. + uWind*3.; transformed.x += sin(uTime*(1.2+uWind*1.4) + o.x*.6 + o.z*.4)*hh*hh*.07*wa; transformed.z += cos(uTime*(1.0+uWind*1.2) + o.x*.4 + o.z*.6)*hh*hh*.05*wa; }' : ''))
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n{ vec4 wp = vec4(transformed, 1.);\n#ifdef USE_INSTANCING\n wp = instanceMatrix * wp;\n#endif\n vWP = (modelMatrix * wp).xyz; }');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + defs + GLSL_COMMON + 'varying vec3 vWP;\n' + (P.kind === 'ground' ? 'uniform sampler2D uPath;\n' : '') + (P.tone ? 'uniform sampler2D uToneMap, uTintMask;\n' : ''))
       .replace('#include <lights_fragment_begin>', P.kind === 'ground' ? SHADOW_SAMPLE_SOFT : SHADOW_SAMPLE_1)
@@ -1034,8 +1035,27 @@ function buildRain() {
   for (let i = 0; i < 26; i++) { const r = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0, depthWrite: false })); r.visible = false; r.renderOrder = 8; scene.add(r); RAIN.rings.push({ m: r, t: -1 }); }
 }
 function rainTrigger() { if (!RAIN.mesh) return; RAIN.on = true; RAIN.t0 = performance.now(); RAIN.mesh.visible = true; post({ tunein: 'snd', ev: 'rain', on: true }); }
+/* [W03] 天氣（伺服器給 kind：clear／cloud／rain／wind）：陰雨讓畫面變灰、太陽變弱；雨沿用雨絲持續下；風讓草擺得更大。數值慢慢漸變，切換不突兀。測試：town3d.html?wx=rain */
+const WEA = { kind: 'clear', dim: 0, wind: 0, rain: 0, tDim: 0, tWind: 0, tRain: 0, snd: false };
+function weatherSet(k) { WEA.kind = k; WEA.tDim = k === 'rain' ? .8 : k === 'cloud' ? .55 : 0; WEA.tWind = k === 'wind' ? 1 : k === 'rain' ? .4 : 0; WEA.tRain = k === 'rain' ? 1 : 0; }
+function weatherFx(dt) {
+  const s = Math.min(1, dt * .8), f = (a, b) => a + (b - a) * s;
+  WEA.dim = f(WEA.dim, WEA.tDim); WEA.wind = f(WEA.wind, WEA.tWind); WEA.rain = f(WEA.rain, WEA.tRain);
+  UN.uWxDim.value = WEA.dim; UN.uWind.value = WEA.wind; sun.intensity = 1 - WEA.dim * .5;
+}
+function weatherRain(now, u) {
+  if (RAIN.on) { WEA.snd = false; return; }
+  if (WEA.rain > .02) {
+    RAIN.mesh.visible = true; u.uA.value = WEA.rain * .7;
+    if (!WEA.snd) { WEA.snd = true; post({ tunein: 'snd', ev: 'rain', on: true }); }
+    if (Math.random() < .35) { const r = RAIN.rings[RAIN.ri++ % RAIN.rings.length]; r.t = now; r.m.position.set(me.obj.position.x + (Math.random() - .5) * 18, .06, me.obj.position.z + (Math.random() - .5) * 18); r.m.visible = true; }
+  } else { if (WEA.snd) { WEA.snd = false; post({ tunein: 'snd', ev: 'rain', on: false }); } if (RAIN.mesh.visible) RAIN.mesh.visible = false; }
+}
+addEventListener('message', e => { const d = e.data; if (d && d.tunein === 'weather' && ['clear', 'cloud', 'rain', 'wind'].includes(d.kind)) weatherSet(d.kind); });
+{ const q = new URLSearchParams(location.search).get('wx'); if (q) weatherSet(q); }
 function rainFx(now) {
   if (!RAIN.mesh) return; const u = RAIN.mesh.material.uniforms; u.uT.value = now / 1000; u.uC.value.set(me.obj.position.x, 0, me.obj.position.z);
+  weatherRain(now, u);
   if (RAIN.on) { const t = (now - RAIN.t0) / 1000; u.uA.value = Math.max(0, Math.min(1, t / 1.5) * Math.min(1, (14 - t) / 2)); if (t > 14) { RAIN.on = false; RAIN.mesh.visible = false; post({ tunein: 'snd', ev: 'rain', on: false }); }
     if (Math.random() < .5) { const r = RAIN.rings[RAIN.ri++ % RAIN.rings.length]; r.t = now; r.m.position.set(me.obj.position.x + (Math.random() - .5) * 18, .06, me.obj.position.z + (Math.random() - .5) * 18); r.m.visible = true; } }
   RAIN.rings.forEach(r => { if (r.t < 0) return; const k = (now - r.t) / 700; if (k >= 1) { r.t = -1; r.m.visible = false; return; } r.m.scale.setScalar(.2 + k * .8); r.m.material.opacity = .7 * (1 - k); });
@@ -1358,7 +1378,7 @@ function frame(now) {
   for (const k in plantObjs) { const q = plantObjs[k], t = Math.min(1, (now - q.born) / 600), e = 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2); q.obj.scale.setScalar(Math.max(.01, e)); q.obj.rotation.y = Math.sin(now / 900 + +k) * .15; }
   NPCS.forEach(n => { n.m.position.y = n.m.userData.by - .4 + Math.sin(now / 1000 * 3.2) * .12; if (n.obj.userData.mixer) n.obj.userData.mixer.update(dt); mkFrame(n, now, dt); }); mkFxFrame(now);
   { const p = me.obj.position; sun.target.position.set(Math.round(p.x / 2) * 2, 0, Math.round(p.z / 2) * 2); sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 90); }
-  UN.uTime.value = now / 1000; try { dustFrame(now); } catch (e) { DUST.n = 0; } updateGrass(me.x, me.z); grassChunkFrame(me.x, me.z); fxFrame(now, dt); spotFrame(now, dt); if (fr % 15 === 0) sndSend();
+  UN.uTime.value = now / 1000; try { dustFrame(now); } catch (e) { DUST.n = 0; } updateGrass(me.x, me.z); grassChunkFrame(me.x, me.z); fxFrame(now, dt); weatherFx(dt); spotFrame(now, dt); if (fr % 15 === 0) sndSend();
   window.__sky.position.copy(cam.position); window.__skyMat.uniforms.t.value = now / 1000;
   // 鏡頭（Unity CameraFollow）：在 Ping 後方 6.5 公尺、高 3.5 公尺，看向前方 3.5 公尺、高 1.2 公尺
   const fx = Math.sin(me.yaw), fz = Math.cos(me.yaw);

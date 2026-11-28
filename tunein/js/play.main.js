@@ -997,6 +997,16 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       gpEl.hidden = !show; if (!show) return; const lv = GP.lv | 0; gpEl.firstChild.textContent = '小鎮 ' + (lv >= 2 ? '好熱鬧' : lv === 1 ? '熱鬧起來' : '靜悄悄'); gpEl.querySelector('u').style.width = Math.max(4, Math.min(100, GP.loud || 0)) + '%';
       const f = $('#uFrame'), r = f && !f.hidden ? f.getBoundingClientRect() : null; if (r && r.width > 40) { gpEl.style.left = 'auto'; gpEl.style.transform = 'none'; gpEl.style.right = (innerWidth - r.right + 12) + 'px'; gpEl.style.top = (r.top + 62) + 'px'; } } catch (e) {}
   }
+  /* [W02] 天氣：伺服器統一給一個值；頂部倒數旁一個小圖示，換天氣時 Blip 說一句（不佔操作區）；小鎮光線／雨／風由 town3d 處理 */
+  const WX_ICON = { clear: '☀️', cloud: '☁️', rain: '🌧️', wind: '🌬️' }, WX_SAY = { clear: '今天天氣好，聲音傳得很遠。', cloud: '雲有點厚，小鎮靜靜的。', rain: '外面在下雨，聽聽雨聲吧。', wind: '風有點大，樹葉沙沙響。' };
+  let WXK = '';
+  function weatherSync(w) {
+    if (!w || !WX_ICON[w.kind] || w.kind === WXK) return;
+    WXK = w.kind; const el = $('#wx'); if (el) { el.textContent = WX_ICON[w.kind]; el.hidden = false; el.setAttribute('aria-label', '天氣：' + (w.label || '')); }
+    toTown({ tunein: 'weather', kind: w.kind });
+    let seen = ''; try { seen = sessionStorage.getItem('tunein.wx') || ''; } catch (e) {}
+    if (S.started && !S.ended && seen !== w.kind) { try { sessionStorage.setItem('tunein.wx', w.kind); } catch (e) {} toast('Blip：' + WX_SAY[w.kind], 'info'); }
+  }
   function gardenSync(g) {   // 每次輪詢 /state 都呼叫：熱鬧度等級變高時提醒一次
     if (g) { GP = g; gardenPill(); }
     if (!g) return; const lv = g.lv | 0; if (lv === NET.lv) return; const up = lv > (NET.lv | 0); NET.lv = lv; if (!S.started || S.ended || !up) return;
@@ -1262,7 +1272,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (now - NET.lastPoll < 500 || NET.busy) return; NET.lastPoll = now; NET.busy = true;
     const ac = new AbortController(), to = setTimeout(() => ac.abort(), 3000);
     try {
-      const tq = Date.now(), s2 = await (await fetch(NET.api + '/state?lite=1', { cache: 'no-store', signal: ac.signal })).json(); if (!s2) return; try { gardenSync(s2.garden); } catch (e) {} try { if (s2.residents) resSync(s2.residents); } catch (e) {}
+      const tq = Date.now(), s2 = await (await fetch(NET.api + '/state?lite=1', { cache: 'no-store', signal: ac.signal })).json(); if (!s2) return; try { gardenSync(s2.garden); } catch (e) {} try { weatherSync(s2.weather); } catch (e) {} try { if (s2.residents) resSync(s2.residents); } catch (e) {}
       if (s2.active && s2.roundEnd && s2.now && S.started && !S.ended) {   // 每次輪詢都對一次伺服器的剩餘時間：後來加入的人、手機時鐘不準，倒數都會一致
         const left = s2.roundEnd - s2.now - (Date.now() - tq) / 2, mine = S.roundEnd - Date.now();
         if (left > 0 && left <= ROUND_MS + 2000 && Math.abs(mine - left) > 1500) { S.roundEnd = Date.now() + left; try { tickRound(); } catch (e) {} }
@@ -1293,7 +1303,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=86&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=87&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1783,7 +1793,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (d.tunein === 'cine') { CINE.on = !!d.on; document.body.classList.toggle('cine', CINE.on); clearTimeout(CINE.safe); if (CINE.on) CINE.safe = setTimeout(() => { CINE.on = false; document.body.classList.remove('cine'); }, 15000); return; }   /* 保險：過場最多 15 秒，小鎮沒回報結束也會自動解除，方向鍵不會一直被藏起來 */
     if (d.tunein === 'dbg') { try { window.__tlog && window.__tlog('town ' + d.s); } catch (x) {} TOWN.sp = /sp=1/.test(d.s || ''); TOWN.t = Date.now(); return; }
     if (d.tunein === 'tutState') { TUTO.ack = 99; return; }
-    if (d.tunein === 'ready') { TUTO.ack = 0; toTown({ tunein: 'unlock', ids: Object.keys(S.unl || {}) }); return; }
+    if (d.tunein === 'ready') { TUTO.ack = 0; if (WXK) toTown({ tunein: 'weather', kind: WXK }); toTown({ tunein: 'unlock', ids: Object.keys(S.unl || {}) }); return; }
     if (d.tunein === 'tutEdge') toast('先在這附近完成教學，之後就能走遠囉', '', 2600);
   });
 
