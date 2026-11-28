@@ -1132,9 +1132,9 @@ const WX_PROF = {   // dim 變暗／sat 飽和度／tint 色偏／lift 霧白／
   clear:  { gain: -.14, wg: 0, wf: 1, wr: 1, wc: 1, dim: .19,  sat: .97,   tint: [1, 1, 1],         lift: 0,   sun: .9,    amb: .96,    cl: .66, wind: .1,  rain: 0, fog: 0, cs: 1, top: C(.26, .56, .86), mid: C(.56, .74, .88), hor: C(.80, .89, .90) },
   partly: { gain: -.04, wg: 0.1, wf: 1, wr: 1, wc: 0.9, dim: .13, sat: .98,  tint: [1, 1, 1],        lift: 0,   sun: .93,   amb: 1, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.40, .62, .86), mid: C(.68, .81, .90), hor: C(.87, .93, .94) },
   cloud:  { gain: .78, wg: 0.4, wf: 0.9, wr: 1, wc: 0.4, dim: .12, sat: .8,  tint: [-.02, -.01, .01], lift: .04, sun: .7,   amb: 1.2,  cl: .34, wind: .15, rain: 0, fog: 0, cs: 1, top: C(.58, .65, .72), mid: C(.74, .79, .83), hor: C(.84, .87, .88) },
-  fog:    { gain: .7, wg: 0.5, wf: 0.6, wr: 0.8, wc: 0.3, dim: .1,  sat: .6,  tint: [0, .01, .02],     lift: .18, sun: .6,   amb: 1.22, cl: .3,  wind: 0,   rain: 0, fog: 1, cs: .4, top: C(.76, .81, .83), mid: C(.83, .87, .88), hor: C(.9, .93, .93) },
-  rain:   { gain: .6, wg: 0.55, wf: 1.3, wr: 3, wc: 0.2, dim: .26, sat: .72, tint: [-.08, -.03, .05], lift: .03, sun: .5,   amb: 1.1,  cl: .3,  wind: .45, rain: 1, fog: 0, cs: 2, top: C(.4, .47, .56), mid: C(.55, .62, .68), hor: C(.7, .76, .79) },
-  wind:   { gain: -.12, wg: 0, wf: 1.9, wr: 1, wc: 1.3, dim: .18,  sat: 1.0, tint: [-.01, .02, .04], lift: 0,   sun: .96,  amb: .97,    cl: .6,  wind: 1,   rain: 0, fog: 0, cs: 5, top: C(.3, .64, .95), mid: C(.68, .86, .95), hor: C(.86, .94, .95) }
+  fog:    { gain: .45, wg: 0.5, wf: 0.6, wr: 0.8, wc: 0.3, dim: .1,  sat: .74,  tint: [0, .01, .02],     lift: .1, sun: .72,   amb: 1.12, cl: .3,  wind: 0,   rain: 0, fog: 1, cs: .4, top: C(.76, .81, .83), mid: C(.83, .87, .88), hor: C(.9, .93, .93) },
+  rain:   { gain: 1.55, wg: 0.55, wf: 1.3, wr: 3, wc: 0.2, dim: .14, sat: .78, tint: [-.06, -.02, .04], lift: .06, sun: .72,   amb: 1.4,  cl: .3,  wind: .45, rain: 1, fog: 0, cs: 2, top: C(.4, .47, .56), mid: C(.55, .62, .68), hor: C(.7, .76, .79) },
+  wind:   { gain: .08, wg: 0, wf: 1.9, wr: 1, wc: 1.3, dim: .12,  sat: 1.0, tint: [-.01, .02, .04], lift: 0,   sun: .98,  amb: 1.08,    cl: .6,  wind: 1,   rain: 0, fog: 0, cs: 5, top: C(.3, .64, .95), mid: C(.68, .86, .95), hor: C(.86, .94, .95) }
 };
 const WEA = { kind: 'clear', lv: 1, snd: false, cx: 0, cur: null, tgt: null };
 function wxTarget(k, lv) {   // 強度 lv 調整：雨越大越暗越灰、風越強雲越快

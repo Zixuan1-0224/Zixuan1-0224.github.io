@@ -557,7 +557,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     $$('.pt,.wk').forEach(p => p.classList.remove('task')); if (!show) return;
     if (S.quest && S.woke[S.quest]) setQuest(null);
     const t = taskNow(), dots = t.free ? '' : t.tut != null ? [1, 2, 3, 4, 5].map(i => '<i style="background:var(--h-flower);opacity:' + (i <= t.tut ? 1 : .3) + '"></i>').join('') : MAIN.map(id => '<i style="background:var(--h-' + id + ');opacity:' + (S.woke[id] ? 1 : .3) + '"></i>').join('');
-    const html = '<div class="tk-top"><span class="tk-eye">' + (t.tut != null ? '教學' : t.free ? '探索' : '居民') + '</span><span class="tk-dots">' + dots + '<b class="num">' + (t.free ? '' : t.tut != null ? Math.min(5, Math.max(0, t.tut)) + '/5' : t.awake + '/4') + '</b></span><span class="tk-btns"><button type="button" class="tkb" data-open="q" aria-label="任務單"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3H8zM6 6h12v15H6zM9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" class="tkb" data-open="s" aria-label="交流"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M15.5 14.2c3 0 5.5 1.8 5.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' + (socialRows().length ? '<b class="bdg">' + socialRows().length + '</b>' : '') + '</button></span></div>' +
+    const html = '<div class="tk-top"><span class="tk-eye">' + (t.tut != null ? '教學' : t.free ? '探索' : '居民') + '</span><span class="tk-dots">' + dots + '<b class="num">' + (t.free ? '' : t.tut != null ? Math.min(5, Math.max(0, t.tut)) + '/5' : t.awake + '/4') + '</b></span><span class="tk-btns"><button type="button" class="tkb" data-open="q" aria-label="任務單"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3H8zM6 6h12v15H6zM9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' + (socialRows().length ? '<button type="button" class="tkb" data-open="s" aria-label="交流"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M15.5 14.2c3 0 5.5 1.8 5.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b class="bdg">' + socialRows().length + '</b></button>' : '') + '</span></div>' +
       '<div class="tk-main' + (S.acc && Date.now() - S.acc < 4000 ? ' ok' : '') + '">' + (t.id ? '<span class="tk-dot" style="background:var(--h-' + N[t.id].cls + ')"></span>' : '') + '<div><p class="tk-h">' + t.h + '</p><p class="tk-p">' + t.p + '</p></div></div>';
     if (g.__h !== html) { g.__h = html; g.innerHTML = html; }   // 內容沒變就不重畫（避免上方介面一直閃、跳動）
     if (t.id) { const pt = document.querySelector('[data-id="' + t.id + '"]'); if (pt && t.awake < 4) pt.classList.add('task'); }
@@ -1075,15 +1075,16 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function openSettle() {
     if (S.ended) return; S.ended = true; try { localStorage.removeItem('tunein.sess'); } catch (e) {} closeSheet(); clearInterval(S.settleTimer);
     const bk = bookGet(), SPL = ((CODEX.cfg && CODEX.cfg.spots) || []).filter(x => x.id !== 's01'), a = SPL.filter(x => bk[x.id]).length, kinds = new Set(S.planted.map(x => x.name)).size, aq = S.planted.length ? S.planted.reduce((t, x) => t + (x.q || 0), 0) / S.planted.length : 0;
-    let E = (a >= 7 || (NET.lv | 0) >= 2) ? ['小鎮好熱鬧', 'Blip 坐到你身邊，耳朵輕輕晃'] : a >= 4 ? ['小鎮熱鬧起來了', '好多沒聽過的聲音疊在一起。'] : a >= 2 ? ['小鎮慢慢熱鬧起來', '你找到的聲音，讓小鎮多了一點熱鬧。'] : ['小鎮靜悄悄', '小鎮還很安靜。下次再來，一起幫它找聲音吧。'];   /* [P105] 結局改看找到幾種聲音（原本看叫醒幾位居民） */
-    if (S.planted.length) E = [E[0], E[1] + (aq >= .75 ? '　你聽得很專心，種下的聲音又亮又久。' : '　你種下的聲音，讓小鎮多了一點熱鬧。')];
+    let E = (a >= 7 || (NET.lv | 0) >= 2) ? ['小鎮好熱鬧', 'Blip 坐到你身邊，耳朵輕輕晃'] : a >= 4 ? ['小鎮熱鬧起來了', '好多聲音疊在一起了。'] : a >= 2 ? ['小鎮慢慢熱鬧起來', '你找到的聲音，讓小鎮更熱鬧。'] : ['小鎮靜悄悄', '下次再來，一起找聲音吧。'];   /* [P105] 結局改看找到幾種聲音（原本看叫醒幾位居民） */
+    if (S.planted.length) E = [E[0], E[1] + '\n' + (aq >= .75 ? '你聽得很專心。' : '你種下的聲音也來幫忙了。')];
     S.end = E; $('#stRound').textContent = '時間到'; $('#stAll').textContent = E[0];
-    const meter = '<div class="rsm"><div class="rsm-l"><span>開始　靜悄悄</span><b>現在　' + a + '／' + (SPL.length || 7) + ' 種聲音</b></div><div class="rsm-b" style="grid-template-columns:repeat(' + (SPL.length || 7) + ',1fr)">' + SPL.map((x, i) => '<i class="' + (bk[x.id] ? 'on ' : '') + 'l-' + ['flower', 'house', 'stall', 'river'][i % 4] + '"></i>').join('') + '</div></div>';
-    $('#stTiles').innerHTML = meter + SPL.map(x => '<div class="tile' + (bk[x.id] ? ' on' : '') + '"><b>' + x.name + '</b><span class="st">' + (bk[x.id] ? '聽到了' : '還沒聽到') + '</span></div>').join('');
+    const N7 = SPL.length || 7, CL = ['flower', 'house', 'stall', 'river'];
+    const meter = '<div class="rsm"><div class="rsm-l"><b>找到 ' + a + '／' + N7 + ' 種聲音</b><span>從靜悄悄開始</span></div><div class="rsm-b" style="grid-template-columns:repeat(' + N7 + ',1fr)">' + SPL.map((x, i) => '<i class="' + (bk[x.id] ? 'on ' : '') + 'l-' + CL[i % 4] + '"></i>').join('') + '</div></div>';
+    $('#stTiles').innerHTML = meter + '<div class="stchips">' + SPL.map((x, i) => bk[x.id] ? '<span class="stc on l-' + CL[i % 4] + '"><i></i>' + x.name + '</span>' : '<span class="stc">？？？</span>').join('') + '</div>';   /* [P111] 一列列小標籤，不再用兩欄直排字 */
     $('#stLine').textContent = E[1]; $('#stMine').hidden = true; const pr = $('#stProg'); pr.classList.remove('run'); void pr.offsetWidth; pr.classList.add('run');
-    let left = SETTLE_MS / 1000; $('#stCount').textContent = '離場卡 ' + left + ' 秒後出現'; $('#stCards').hidden = false;
+    let left = SETTLE_MS / 1000; $('#stCount').textContent = left + ' 秒後換離場卡'; $('#stCards').hidden = false;
     show('settle'); if (a >= 4) sfx.wake();
-    S.settleTimer = setInterval(() => { left--; $('#stCount').textContent = '離場卡 ' + left + ' 秒後出現'; if (left <= 0) { clearInterval(S.settleTimer); showLeave(); } }, 1000);
+    S.settleTimer = setInterval(() => { left--; $('#stCount').textContent = left + ' 秒後換離場卡'; if (left <= 0) { clearInterval(S.settleTimer); showLeave(); } }, 1000);
   }
   function showLeave() {
     clearInterval(S.settleTimer); const E = S.end || ENDS[0]; $('#lvName').textContent = E[0];
@@ -1091,9 +1092,10 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     const bk2 = bookGet(), SPL2 = ((CODEX.cfg && CODEX.cfg.spots) || []).filter(x => x.id !== 's01'), aw = SPL2.filter(x => bk2[x.id]).length, fr = FR.filter((f, i) => S.friends[i]).length, sw = S.notes.filter(n => n.src).length;
     const dots = SPL2.map(x => '<i style="background:var(--h-flower);opacity:' + (bk2[x.id] ? 1 : .22) + '"></i>').join('');
     const tile = (n, l, x) => '<div class="lvt"><b class="num">' + n + '</b><span>' + l + '</span>' + (x || '') + '</div>';
-    const found = S.cards.concat(S.planted), seenN = {}, uniq = found.filter(c => !seenN[c.name] && (seenN[c.name] = 1));
-    $('#lvLittle').innerHTML = tile(aw + '/' + (SPL2.length || 7), '找到的聲音', '<span class="lvd2">' + dots + '</span>') + tile(S.planted.length, '種下的聲音') + tile(fr, '新朋友');
-    $('#lvSounds').innerHTML = '<p class="lvst">我發現的聲音</p><div class="lvchips">' + (uniq.length ? uniq.map(c => '<span class="lvchip l-' + (c.cls || 'flower') + '"><i></i>' + c.name + '</span>').join('') : '<span class="lvnone">這輪還沒收到聲音，下次去聽聽看</span>') + '</div>';
+    const CL2 = ['flower', 'house', 'stall', 'river'];
+    $('#lvLittle').innerHTML = tile(aw + '/' + (SPL2.length || 7), '找到的聲音', '<span class="lvd2">' + dots + '</span>') + (S.planted.length ? tile(S.planted.length, '種下的聲音') : '') + (fr ? tile(fr, '新朋友') : '');
+    const gotL = SPL2.filter(x => bk2[x.id]);
+    $('#lvSounds').innerHTML = '<div class="lvchips">' + (gotL.length ? gotL.map((c, i) => '<span class="lvchip l-' + CL2[i % 4] + '"><i></i>' + c.name + '</span>').join('') : '<span class="lvnone">還沒收到聲音</span>') + '</div>';   /* [P111] 離場卡改列「找到的聲音」名稱，和上面 n/7 一致 */
     $('#lvSounds').hidden = false;
     NetLeave();   // 看結果時 Ping 先離場，不留在小鎮裡；再玩一次時才重新加入（會有出現動畫）
     show('leave');
@@ -1238,16 +1240,18 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (h !== CD.h) { CD.h = h; el.innerHTML = h; el.setAttribute('aria-label', '收集進度 ' + n + '／' + CD.n); if (n > CD.last) { const on = el.querySelector('i:nth-child(' + n + ')'); if (on) { on.classList.add('pop'); } } CD.last = n; }
   }
   /* [P94] 小鎮畫面上的浮層統一排版：上排＝名字／進度點／倒數；第二排＝單一提示（方向或說話，互斥）；右側＝聽法直排；下方＝說話鈕（方向鍵上方） */
+  const RUN_ICO = '<svg class="rw" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="5.5" r="3"/><path d="M15 10v9M15 12l-5 5M15 12l5 5M15 19l-4 9M15 19l4 9"/></svg><svg class="rr" viewBox="0 0 30 30" aria-hidden="true"><circle cx="18" cy="6" r="3"/><path d="M16.5 11l-3 8M16 12.5l5 2.5 3-3M15.5 13l-5 1-2 4M13.5 19l5 3-1 6M13.5 19l-4 5-5 0M3 9h5M1 14h4M4 19h3"/></svg>';   /* [P111] 跑鍵圖像化：走＝直立小人，跑＝前傾小人＋速度線 */
   function runBtn() {   /* [P98] 奔跑鍵：點一下切換 走／跑（跑＝1.7 倍速），放在左側轉身鍵上方 */
     let b = document.getElementById('runBtn');
-    if (!b) { b = document.createElement('button'); b.id = 'runBtn'; b.type = 'button'; b.className = 'runb'; b.textContent = '跑'; b.setAttribute('aria-label', '奔跑開關'); b.setAttribute('aria-pressed', 'false'); b.hidden = true; document.body.appendChild(b);
+    if (!b) { b = document.createElement('button'); b.id = 'runBtn'; b.type = 'button'; b.className = 'runb'; b.innerHTML = RUN_ICO; b.setAttribute('aria-label', '奔跑開關'); b.setAttribute('aria-pressed', 'false'); b.hidden = true; document.body.appendChild(b);
       b.addEventListener('pointerdown', e => { e.preventDefault(); CTL.run = !CTL.run; b.classList.toggle('on', CTL.run); b.setAttribute('aria-pressed', CTL.run ? 'true' : 'false'); ctlCalc(); if (uMode === 1 || T3) ctlSend(); try { sfx.tap(); } catch (x) {} }); }
     return b;
   }
   function placeHud() {
-    const f = $('#uFrame'); if (!f || f.hidden || !document.body.classList.contains('ufull')) return; const r = f.getBoundingClientRect(); if (r.width < 40) return;
+    const f = $('#uFrame'); { const rb0 = document.getElementById('runBtn'); if (rb0 && (!f || f.hidden || !document.body.classList.contains('ufull') || S.screen !== 'explore')) { rb0.hidden = true; if (CTL.run) { CTL.run = false; rb0.classList.remove('on'); rb0.setAttribute('aria-pressed', 'false'); } } }
+    if (!f || f.hidden || !document.body.classList.contains('ufull')) return; const r = f.getBoundingClientRect(); if (r.width < 40) return;
     const dots = document.getElementById('cdots'); if (dots) { dots.style.left = (r.left + r.width / 2) + 'px'; dots.style.top = (r.top + 34) + 'px'; dots.style.right = 'auto'; }
-    { const rb = runBtn(), on = U.m === 1 && S.started && !S.ended && !bdOn && !CINE.on && !(typeof tutActive === 'function' && tutActive()); if (rb.hidden === on) rb.hidden = !on; rb.style.left = (r.left + 14) + 'px'; rb.style.top = (r.bottom - 150) + 'px'; }
+    { const rb = runBtn(), on = U.m === 1 && S.started && !S.ended && S.screen === 'explore' && !bdOn && !CINE.on && !(typeof tutActive === 'function' && tutActive()); if (rb.hidden === on) rb.hidden = !on; rb.style.left = (r.left + 14) + 'px'; rb.style.top = (r.bottom - 150) + 'px'; }
     const br = document.getElementById('bandRow'); if (br) { br.style.left = 'auto'; br.style.right = Math.max(6, innerWidth - r.right + 10) + 'px'; br.style.top = (r.top + r.height * .34) + 'px'; }
     document.body.classList.toggle('talkon', !!($('#t3talk') && !$('#t3talk').hidden));
     try { placeTalk(); } catch (e) {}
@@ -1344,7 +1348,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=121&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=123&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1488,10 +1492,16 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function cuePlay(k) {
     try { ensureAudio(); const e = window.__env, r = e ? .85 + .3 * ((e.at || .5) * .6 + (e.sw || .5) * .4) : 1; (CUE[k] || CUE.bird)(r); } catch (e) {}
   }
-  function npcSay(who, text, tag) {   // NPC 說話卡（沿用小鎮對話卡樣式）：名字、一個氣泡、一顆「好」鈕
-    if (TN.on || S.talkOn) return; const cls = who === '老鼠奶奶' ? 'house' : who === '釣魚的青蛙' ? 'river' : 'flower';
-    openSheet('<div class="dlg l-' + cls + '"><div class="dlg-who"><b>' + escH(who) + '</b>' + (tag ? '<span class="dlg-n">' + escH(tag) + '</span>' : '') + CLOSE + '</div><div class="dlg-bub">' + escH(text) + '</div><button class="dlg-go" type="button" id="dlgOk">好，記住了</button></div>');
-    try { $('#sheet').classList.add('dlgmode'); } catch (x) {} const k = $('#dlgOk'); if (k) k.addEventListener('click', () => { try { sfx.tap(); } catch (x) {} closeSheet(); });
+  function npcPages(text) {   /* [P111] 長句拆段：依句號切，每頁約 26 字內，一次只顯示一小段 */
+    const sn = String(text || '').split(/(?<=[。！？!?])\s*/).map(x => x.trim()).filter(Boolean), pg = []; let cur = '';
+    sn.forEach(x => { if (cur && (cur + x).length > 26) { pg.push(cur); cur = x; } else cur += x; }); if (cur) pg.push(cur); return pg.length ? pg : [String(text || '')];
+  }
+  function npcSay(who, text, tag) {   // NPC 說話卡：名字、一個氣泡（分段）、一顆按鈕（下一句／好）
+    if (TN.on || S.talkOn) return; const cls = who === '老鼠奶奶' ? 'house' : who === '釣魚的青蛙' ? 'river' : 'flower', pg = npcPages(text); let i = 0;
+    openSheet('<div class="dlg l-' + cls + '"><div class="dlg-who"><b>' + escH(who) + '</b>' + (tag ? '<span class="dlg-n">' + escH(tag) + '</span>' : '') + CLOSE + '</div><div class="dlg-bub" id="dlgBub"></div><div class="dlg-pg" id="dlgPg" aria-hidden="true"></div><button class="dlg-go" type="button" id="dlgOk"></button></div>');
+    try { $('#sheet').classList.add('dlgmode'); } catch (x) {}
+    const draw = () => { const b = $('#dlgBub'), g = $('#dlgPg'), k = $('#dlgOk'); if (!b || !k) return; b.textContent = pg[i]; g.innerHTML = pg.length > 1 ? pg.map((_, j) => '<i class="' + (j === i ? 'on' : '') + '"></i>').join('') : ''; k.textContent = i < pg.length - 1 ? '下一句' : '好，記住了'; };
+    draw(); const k = $('#dlgOk'); if (k) k.addEventListener('click', () => { try { sfx.tap(); } catch (x) {} if (i < pg.length - 1) { i++; draw(); } else closeSheet(); });
     try { navigator.vibrate && navigator.vibrate(20); } catch (x) {}
   }
   function tnDone() {
