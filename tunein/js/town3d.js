@@ -66,9 +66,9 @@ vec3 uGrade(vec3 c){
   c = clamp(uNeutral(c), 0., 1.);
   vec3 g = pow(c, vec3(1./2.2)); float t = clamp(uLum(g), 0., 1.);
   g = uSoftLight(g, mix(vec3(.5), vec3(.3098,.5608,.6510), 1.-t));
-  g = uSoftLight(g, mix(vec3(.5), vec3(1.,.9020,.7098), t));
-  g = g*vec3(.76,.74,.72) + vec3(.15,.15,.12);   /* [P117] 黑位 .20→.15（暗處更深、畫面不起霧，貼近 Unity 乾淨感），斜率補回維持中間亮度 */   /* [P82] 對齊 Unity 實測：草(150,195,118)／路(223,208,153) */
-  g = g*vec3(.83,.81,.79) + vec3(-.035,.01,-.01); { float lg = dot(g, vec3(.2126,.7152,.0722)); g = mix(vec3(lg), g, 1.0); } { float gw = clamp((g.g - max(g.r, g.b))*5., 0., 1.); g = mix(g, g*vec3(1.10,1.0,1.10) + vec3(.05,.035,.07), gw); }   /* [P91] 只有「綠色為主」的像素（草地）才墊高紅藍；天空、山、路不再被染成淡紫 */   /* [P89] 草地實測：網頁 (102,170,77)／飽和.57 vs Unity (154,187,127)／.36 → 降飽和、墊高紅藍 */   /* [P85/P88] 手機實拍比對（含光暈）：網頁整體偏亮偏白，RGB 平均比 Unity 高 R+32／G+14／B+30、飽和 .26 vs .34 → 墊高量拿掉、飽和 1.18、光暈 .32→.18 */
+  g = uSoftLight(g, mix(vec3(.5), vec3(1.,.945,.85), t));   /* [P121] 暖色疊光減半，去黃霧 */
+  g = g*vec3(.75,.75,.76) + vec3(.145,.15,.15);   /* [P121] 黑位與斜率改中性（原本藍色最低＝整體偏黃霧） */   /* [P117] 黑位 .20→.15（暗處更深、畫面不起霧，貼近 Unity 乾淨感），斜率補回維持中間亮度 */   /* [P82] 對齊 Unity 實測：草(150,195,118)／路(223,208,153) */
+  g = g*vec3(.83,.81,.82) + vec3(-.035,.01,-.005); { float lg = dot(g, vec3(.2126,.7152,.0722)); g = mix(vec3(lg), g, 1.0); } { float gw = clamp((g.g - max(g.r, g.b))*5., 0., 1.); g = mix(g, g*vec3(1.10,1.0,1.10) + vec3(.05,.035,.07), gw); }   /* [P91] 只有「綠色為主」的像素（草地）才墊高紅藍；天空、山、路不再被染成淡紫 */   /* [P89] 草地實測：網頁 (102,170,77)／飽和.57 vs Unity (154,187,127)／.36 → 降飽和、墊高紅藍 */   /* [P85/P88] 手機實拍比對（含光暈）：網頁整體偏亮偏白，RGB 平均比 Unity 高 R+32／G+14／B+30、飽和 .26 vs .34 → 墊高量拿掉、飽和 1.18、光暈 .32→.18 */
   g = (g - .58)*1.34 + .58;
   g += (1. - g)*g*vec3(.95,.85,.80)*uWxGain;   /* [P92] 陰／霧／雨天提亮（中間調拉高、亮部不爆）：實測網頁草地(80,113,85) vs Unity(140,173,124) */
   /* [P91] 加對比：畫面不再發白、發霧（暗處回到有層次的深綠，亮處維持明亮） */
@@ -1030,7 +1030,7 @@ function sndSend() {
   l.sort((a, b) => a.d - b.d); post({ tunein: 'snd', list: l.slice(0, 8).map(({ id, k, g, pan, lp }) => pan !== undefined ? { id, k, g, pan, lp } : { id, k, g }) });
 }
 addEventListener('message', e => { const d = e.data; if (!d) return; if (d.tunein === 'det') { DET.on = !!d.on; if (!DET.on) SPOT.list.forEach(o => { o.g.visible = false; }); sndSend(); } if (d.tunein === 'band') { DET.band = d.v | 0; SPOT.list.forEach(o => { o.g.visible = false; o.shown = false; }); sndSend(); } if (d.tunein === 'spotTake') spotTake(d.id); if (d.tunein === 'spotLost') spotLost(d.id); if (d.tunein === 'unlock') { SPOT.unl = {}; (d.ids || []).forEach(k => { SPOT.unl[k] = 1; }); }
-  if (d.tunein === 'birdMark') { BMARK.on = !!d.on; if (!BMARK.on && BIRD_LBL && BIRD_LBL.userData.until === Infinity) BIRD_LBL.visible = false; return; } if (d.tunein === 'appearGo') { appearGo = true; ownTryAppear(); return; } if (d.tunein === 'tut') { if (d.on) { appearGo = true; ownTryAppear(); if (!spawned) return; tutStart(); } else TUT.on = false; post({ tunein: 'tutState', on: TUT.on }); } });
+  if (d.tunein === 'birdMark') { BMARK.on = !!d.on; if (!BMARK.on && BIRD_LBL) BIRD_LBL.visible = false; return; } if (d.tunein === 'appearGo') { appearGo = true; ownTryAppear(); return; } if (d.tunein === 'tut') { if (d.on) { appearGo = true; ownTryAppear(); if (!spawned) return; tutStart(); } else TUT.on = false; post({ tunein: 'tutState', on: TUT.on }); } });
 
 /* ═════════ [T11] 小鳥事件（Unity BirdArrival）：種下「鳥叫」→ 鏡頭切到降落點、星星特效、兩隻小鳥飛下來 ═════════ */
 const BIRD_HOME = { x: 1.84, z: .2 };   // Bird_Fin 在場景裡的位置（朝向 180°）
@@ -1057,20 +1057,21 @@ function birdTrigger(mine) {
   if (B.done || !M.bird2) return; B.done = true; B.t0 = performance.now(); B.phase = 1; STAR_T = STAR_T || starTex();
   B.flock.forEach(f => scene.remove(f.obj)); B.flock = [birdSpawn(-1), birdSpawn(1)];
   if (mine) {
-    const dx = me.x - BIRD_HOME.x, dz = me.z - BIRD_HOME.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, px = -uz, pz = ux;
-    let cx = BIRD_HOME.x + ux * 5 + px * 6.5, cz = BIRD_HOME.z + uz * 5 + pz * 6.5;
-    if (!spotFree(cx, cz)) { cx = BIRD_HOME.x + ux * 5 - px * 6.5; cz = BIRD_HOME.z + uz * 5 - pz * 6.5; }
-    if (!spotFree(cx, cz)) { cx = BIRD_HOME.x + ux * 6; cz = BIRD_HOME.z + uz * 6; }
-    shot = { p: U(cx, 2.8, cz), l: U(BIRD_HOME.x, 1.2, BIRD_HOME.z), cine: true, until: B.t0 + 1300 + 2400 + 1000 + 2400 + 1800 };
-    birdLabel(shot.until);
+    /* [P121] 只看正面：鏡頭一律站在小鳥正前方（小鳥朝 Unity -z），被擋住就小角度偏一點，不再從側面或後面拍 */
+    let cx = BIRD_HOME.x, cz = BIRD_HOME.z - 6.5, ok = false;
+    for (const dist of [6.5, 5.2, 4]) { for (const ang of [0, .3, -.3, .55, -.55]) {
+      const x = BIRD_HOME.x + Math.sin(ang) * dist, z = BIRD_HOME.z - Math.cos(ang) * dist;
+      if (spotFree(x, z) && !rayBlocked(x, z, BIRD_HOME.x, BIRD_HOME.z)) { cx = x; cz = z; ok = true; break; } } if (ok) break; }
+    shot = { p: U(cx, 2.3, cz), l: U(BIRD_HOME.x, 1.25, BIRD_HOME.z), cine: true, until: B.t0 + 1300 + 2400 + 1000 + 2400 + 1800 };
   }
 }
 const BMARK = { on: false, t: 0, vis: null };
 function birdMarkFrame(now) {
   if (!BMARK.on || cineOn || !me) return;
-  if (!BIRD_LBL) birdLabel(Infinity);
-  BIRD_LBL.visible = true; BIRD_LBL.userData.until = Infinity;
+  if (!BIRD_LBL) birdLabel(0);
   const p = U(BIRD_HOME.x, 2.3, BIRD_HOME.z); BIRD_LBL.position.copy(p);
+  { const d0 = Math.hypot(me.x - BIRD_HOME.x, me.z - BIRD_HOME.z); if (d0 < 14 && !BMARK.did) { BMARK.did = true; BMARK.until = now + 3500; }   /* [P121] 標籤只在第一次靠近時出現 3.5 秒，不常駐 */
+    BIRD_LBL.visible = now < (BMARK.until || 0); BIRD_LBL.userData.until = BMARK.until || 0; }
   const dist = Math.hypot(me.x - BIRD_HOME.x, me.z - BIRD_HOME.z), k = Math.min(4.4, Math.max(1.8, dist * .16)); BIRD_LBL.scale.set(k, k * .3, 1);
   if (now - BMARK.t < 150) return; BMARK.t = now;
   cam.updateMatrixWorld(); const rel = p.clone().applyMatrix4(cam.matrixWorldInverse), v = p.clone().project(cam);
@@ -1111,7 +1112,7 @@ function birdFx(now) {
     let all = true;
     B.flock.forEach(f => { const k = (now - f.t0) / 2400; if (k < 0) { all = false; return; } f.obj.visible = true; const e = Math.min(1, k), ease = 1 - Math.pow(1 - e, 2);
       const x = f.sx + (f.ex - f.sx) * ease, z = f.sz + (f.ez - f.sz) * ease, y = 6 * (1 - ease) * (1 - ease); f.obj.position.copy(U(x, y, z)); f.obj.rotation.y = Math.PI - Math.atan2(f.ex - f.sx, f.ez - f.sz);
-      if (k < 1) all = false; else if (!f.landed) { f.landed = true; const a = f.obj.userData.acts; if (a.clip) a.clip.stop(); if (a.idle) a.idle.reset().play(); f.obj.userData.cur = 'idle'; f.obj.position.y = 0; f.obj.rotation.y = Math.PI; } });
+      if (k < 1) all = false; else if (!f.landed) { f.landed = true; const a = f.obj.userData.acts; if (a.clip) a.clip.stop(); if (a.idle) a.idle.reset().play(); f.obj.userData.cur = 'idle'; f.obj.position.y = 0; f.obj.rotation.y = 0; } });
     if (all) { B.phase = 4; B.tEnd = now; }
   }
   if (B.phase === 4 && now - B.tEnd > 3000) { B.phase = 0; B.stars.forEach(s => scene.remove(s)); B.stars = []; }

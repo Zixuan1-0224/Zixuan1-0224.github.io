@@ -1694,3 +1694,22 @@ body:has(#sheet.dlgmode:not([hidden])) #cdots,body:has(#sheet.dlgmode:not([hidde
   .dockbar.min{padding-top:12px}
 }
 @media (prefers-reduced-motion:reduce){#trayTg svg{transition:none}}
+
+/* ═════ [P121] 去粗黑框：所有卡片／按鈕／提示改成無框＋柔陰影（框線保留為透明，版面不位移）；教學一次只出現一個提示 ═════ */
+.chip,.tkb,.tkb .bdg,.dk,.toast,.sheet,.scard .play,.vnote,.consent,.card,.guide,.ak,.qnext,.rsm,.rsm-b i,#s-settle .tile,.lvt,.lvchip,#s-leave .btn,#s-settle .btn,#flwCard,#flwCard .fcB button,#flwCard .fcTip,#runBtn,.stc,.stc i,.bandrow,.bandrow button,#t3talk,.sdx-bd,.sdx-co,#btnDet.sdx-det,#btnDet.sdx-det::before,#t3hud .t3p,.sdx-gp,.sdx-seed,.sdx-go.ghost,#sheet.dlgmode #sheetBody,#seedTray.open,#mapWrap.ufull,body.ufull #mapWrap,body.ufull #mapWrap .dgrp .dk,body.ufull .chip,body.ufull .guide,body.ufull .guide .tkb,body.ufull .dockbar,#trayTg,.pname input,#cdots i{border-color:transparent !important}
+.chip,.tkb,.dk,.toast,.scard .play,.ak,.qnext,.rsm,#s-settle .tile,.lvt,.lvchip,#s-leave .btn,#s-settle .btn,#flwCard,#flwCard .fcTip,#runBtn,.stc,.bandrow,#t3talk,.sdx-bd,.sdx-co,#btnDet.sdx-det,#t3hud .t3p,.sdx-gp,body.ufull .chip,body.ufull .guide,body.ufull .guide .tkb,body.ufull #mapWrap .dgrp .dk,#trayTg,.bandrow button{box-shadow:0 2px 10px rgba(62,42,90,.16) !important}
+.sheet,#sheet.dlgmode #sheetBody,#seedTray.open,body.ufull #seedTray.open,body.ufull .dockbar,body.ufull #mapWrap.ufull,body.ufull #mapWrap{box-shadow:0 4px 18px rgba(62,42,90,.18) !important}
+.stc:not(.on){border-style:solid}
+#sp92r{box-shadow:0 0 18px rgba(237,233,134,.85) !important;border-width:3px}
+/* 教學：提示放在 Ping 上方一個小膠囊（短標題＋五個進度點），上方任務卡／說明字全部收掉 */
+body.tut .guide,body.tut #trayTg{display:none !important}
+.sdx-cop{display:none !important}
+.sdx-co{padding:8px 16px 9px !important;gap:6px !important;background:rgba(255,252,235,.97) !important}
+.sdx-coh{font-size:18px !important}
+.sdx-cd{display:flex;gap:6px;justify-content:center}
+.sdx-cd i{width:7px;height:7px;border-radius:99px;background:rgba(62,42,90,.2);transition:width .2s}
+.sdx-cd i.dn{background:rgba(242,97,156,.45)}.sdx-cd i.on{background:#F2619C;width:20px}
+.sdx-bd{padding:6px 14px !important;font-size:16px !important;background:rgba(255,252,235,.97) !important}
+/* 一次只留一個：對話卡／彈窗開著時，教學提示、圈圈、方向牌都先退場 */
+body:has(#sheet:not([hidden])) .sdx-co,body:has(#sheet:not([hidden])) .sdx-bd,body:has(#sheet:not([hidden])) #sp92r,body:has(#sheet:not([hidden])) #sp92,body:has(.sdx-tm:not([hidden])) .sdx-co,body:has(.sdx-tm:not([hidden])) .sdx-bd{display:none !important}
+@media (prefers-reduced-motion:reduce){.sdx-cd i{transition:none}}

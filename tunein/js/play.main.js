@@ -1348,7 +1348,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=132&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=133&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1888,9 +1888,9 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function tutCoach(i) {
     const near3 = i === 3 && DETS.on && !!DETS.near, show = (i >= 1 && i <= 5 && i !== 3 && !(i === 4 && TN.on)) || near3;   /* 說明放在 Ping 上方的小提示；上方任務卡只留步驟進度 */
     if (!show) { if (coEl) coEl.hidden = true; coN = null; return; }
-    if (!coEl) { coEl = document.createElement('div'); coEl.className = 'sdx-co'; coEl.setAttribute('role', 'status'); coEl.hidden = true; coEl.innerHTML = '<b class="sdx-coh"></b><span class="sdx-cop"></span>'; document.body.appendChild(coEl); }
+    if (!coEl) { coEl = document.createElement('div'); coEl.className = 'sdx-co'; coEl.setAttribute('role', 'status'); coEl.hidden = true; coEl.innerHTML = '<b class="sdx-coh"></b><span class="sdx-cop"></span><span class="sdx-cd"></span>'; document.body.appendChild(coEl); }
     const TT = near3 ? TUT_NEAR : TUTS[i], key = near3 ? 'n3' : i;
-    if (coN !== key) { coN = key; coEl.querySelector('.sdx-coh').textContent = TT.h; coEl.querySelector('.sdx-cop').textContent = TT.p; coEl.classList.remove('in'); void coEl.offsetWidth; coEl.classList.add('in'); }
+    if (coN !== key) { coN = key; coEl.querySelector('.sdx-coh').textContent = TT.h; coEl.querySelector('.sdx-cop').textContent = TT.p; { let h = ''; for (let k = 1; k <= 5; k++) h += '<i' + (k === i ? ' class="on"' : k < i ? ' class="dn"' : '') + '></i>'; coEl.querySelector('.sdx-cd').innerHTML = h; } coEl.classList.remove('in'); void coEl.offsetWidth; coEl.classList.add('in'); }
     const f = $('#uFrame'), r = f && !f.hidden ? f.getBoundingClientRect() : null; if (!r || r.width < 40) { coEl.hidden = true; return; }
     coEl.style.left = (r.left + r.width / 2) + 'px'; coEl.style.top = (r.top + 96) + 'px'; coEl.style.maxWidth = (r.width - 32) + 'px'; coEl.hidden = false;
   }
@@ -1904,7 +1904,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (!bdOn || CINE.on || d.vis) { if (bdEl) bdEl.hidden = true; return; }
     if (!bdEl) { bdEl = document.createElement('div'); bdEl.className = 'sdx-bd'; bdEl.setAttribute('role', 'status'); bdEl.innerHTML = '<i></i><b></b>'; document.body.appendChild(bdEl); }
     const f = $('#uFrame'), r = f && !f.hidden ? f.getBoundingClientRect() : null; if (!r || r.width < 40) { bdEl.hidden = true; return; }
-    bdEl.className = 'sdx-bd ' + (d.side === 'l' ? 'l' : 'r'); bdEl.querySelector('b').textContent = '小鳥 ' + d.dist + ' 公尺';
+    bdEl.className = 'sdx-bd ' + (d.side === 'l' ? 'l' : 'r'); bdEl.querySelector('b').textContent = d.dist + ' m';
     bdEl.style.top = (r.top + r.height * .5) + 'px'; bdEl.style.left = d.side === 'l' ? (r.left + 10) + 'px' : 'auto'; bdEl.style.right = d.side === 'l' ? 'auto' : (innerWidth - r.right + 10) + 'px'; bdEl.hidden = false;
   }
   function tutTick() {
