@@ -96,7 +96,7 @@ function glowFrame() {
 }
 /* ═════════ [T03] 渲染 ═════════ */
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-const IS_TOUCH = matchMedia('(pointer:coarse)').matches; renderer.setPixelRatio(Math.min(devicePixelRatio || 1, IS_TOUCH ? 1.6 : 2));   /* [P89] 手機起始像素比 ≤1.6（原 2＝像素 1.6 倍），再由 qGov 依實際幀率自動降 */
+const IS_TOUCH = matchMedia('(pointer:coarse)').matches; renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));   /* [P89] 手機起始像素比 ≤1.6（原 2＝像素 1.6 倍），再由 qGov 依實際幀率自動降 */
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1448,11 +1448,11 @@ function qGov(now, dt) {
   if (!QG.on || document.hidden) return; if (dt > .2) return;
   if (++QG.warm < 90) return;   // 前 90 張（載入、編譯 shader）不算
   QG.n++; QG.sum = (QG.sum || 0) + dt; if (!QG.t0) QG.t0 = now; if (now - QG.t0 < 2000) return;
-  const fps = QG.n / QG.sum; QG.t0 = 0; QG.n = 0; QG.sum = 0; QG.fps = Math.round(fps); if (fps >= 45 || QG.lv >= 3) return;
+  const fps = QG.n / QG.sum; QG.t0 = 0; QG.n = 0; QG.sum = 0; QG.fps = Math.round(fps); if (fps >= 30 || QG.lv >= 3) return;   /* [P94] 門檻 45→30；先降陰影與光暈，解析度最後才降且不低於 1.5（原本掉到 1 會整個糊掉） */
   QG.lv++;
-  if (QG.lv === 1) renderer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1.25));
-  else if (QG.lv === 2) { renderer.setPixelRatio(1); sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
-  else if (QG.lv === 3) { BLOOM.on = false; if (glowCv) glowCv.style.display = 'none'; }
+  if (QG.lv === 1) { sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+  else if (QG.lv === 2) { BLOOM.on = false; if (glowCv) glowCv.style.display = 'none'; }
+  else if (QG.lv === 3) renderer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1.5));
   resize();
   post({ tunein: 'perf', lv: QG.lv, fps: QG.fps });
 }
