@@ -39,7 +39,7 @@ const SUN_DIR = new THREE.Vector3(-0.643, 0.669, 0.371).normalize();            
 const HOR = C(.894, .945, .937), SKY_TOP = C(.361, .678, .922), SKY_MID = C(.725, .867, .933), SKY_GND = C(.659, .812, .722);   // Sky_Pink.mat
 const TINT_SAT = 1.6;   /* Ping 染色飽和度：要和 Unity Player_Toon 的 _TintSat、選色頁預覽（play.main.js SOFT.sat）一致 */
 const UN = {   // 環境光：Unity 用天空做 SH；這裡用天空三色近似（天頂／中段／地面）
-  uSun: { value: SUN_COL }, uTime: { value: 0 }, uWxDim: { value: 0 }, uWind: { value: 0 }, uWxSat: { value: 0 }, uWxLift: { value: 0 }, uWxGain: { value: 0 }, uCl: { value: .66 }, uWxTint: { value: new THREE.Vector3(0, 0, 0) },
+  uSun: { value: SUN_COL }, uTime: { value: 0 }, uWxDim: { value: 0 }, uWind: { value: 0 }, uBn: { value: new THREE.Vector4(0, 0, -99, 0) }, uWxSat: { value: 0 }, uWxLift: { value: 0 }, uWxGain: { value: 0 }, uCl: { value: .66 }, uWxTint: { value: new THREE.Vector3(0, 0, 0) },
   uAmbU: { value: C(.50, .75, .93).multiplyScalar(.9) }, uAmbM: { value: C(.76, .88, .93).multiplyScalar(.9) }, uAmbD: { value: C(.66, .81, .72).multiplyScalar(.8) }
 };
 
@@ -225,8 +225,8 @@ function unityMat(P, opt) {
   const defs = unityDefs(P);
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, UN); if (P.tone) { sh.uniforms.uToneMap = { value: T.ping_tone }; sh.uniforms.uTintMask = { value: T.ping_mask }; } if (P.kind === 'ground') sh.uniforms.uPath = { value: PATH_TEX };
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP;' + (P.kind === 'grass' ? '\nuniform float uTime, uWind;' : ''))
-      .replace('#include <begin_vertex>', '#include <begin_vertex>' + (P.kind === 'grass' ? '\n{ vec3 o = (modelMatrix * instanceMatrix * vec4(0.,0.,0.,1.)).xyz; float dd = distance(o, cameraPosition); transformed *= 1. - smoothstep(30., 40., dd); float hh = color.r; float wa = 1. + uWind*3.; transformed.x += sin(uTime*(1.2+uWind*1.4) + o.x*.6 + o.z*.4)*hh*hh*.07*wa; transformed.z += cos(uTime*(1.0+uWind*1.2) + o.x*.4 + o.z*.6)*hh*hh*.05*wa; }' : ''))
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP;\nuniform vec4 uBn;' + (P.kind === 'grass' ? '\nuniform float uTime, uWind;' : ''))
+      .replace('#include <begin_vertex>', '#include <begin_vertex>' + (P.kind === 'ground' ? '' : '\n{ vec4 bo4 = vec4(0.,0.,0.,1.);\n#ifdef USE_INSTANCING\n bo4 = instanceMatrix * bo4;\n#endif\n vec3 bo = (modelMatrix * bo4).xyz; float bd = distance(bo.xz, uBn.xy); float ph = uBn.z*9. - bd; float bw = (ph > 0. && ph < 5.) ? sin(ph/5.*3.14159) * exp(-bd*.06) * uBn.w : 0.; transformed.y += bw * .3 * clamp(transformed.y, 0., 1.2); transformed.xz *= 1. - bw * .10; }') + (P.kind === 'grass' ? '\n{ vec3 o = (modelMatrix * instanceMatrix * vec4(0.,0.,0.,1.)).xyz; float dd = distance(o, cameraPosition); transformed *= 1. - smoothstep(30., 40., dd); float hh = color.r; float wa = 1. + uWind*3.; transformed.x += sin(uTime*(1.2+uWind*1.4) + o.x*.6 + o.z*.4)*hh*hh*.07*wa; transformed.z += cos(uTime*(1.0+uWind*1.2) + o.x*.4 + o.z*.6)*hh*hh*.05*wa; }' : ''))
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n{ vec4 wp = vec4(transformed, 1.);\n#ifdef USE_INSTANCING\n wp = instanceMatrix * wp;\n#endif\n vWP = (modelMatrix * wp).xyz; }');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + defs + GLSL_COMMON + 'varying vec3 vWP;\n' + (P.kind === 'ground' ? 'uniform sampler2D uPath;\n' : '') + (P.tone ? 'uniform sampler2D uToneMap, uTintMask;\n' : ''))
       .replace('#include <lights_fragment_begin>', P.kind === 'ground' ? SHADOW_SAMPLE_SOFT : SHADOW_SAMPLE_1)
@@ -805,7 +805,7 @@ function mkFxFrame(now) {
     if (u.t < 0 || a >= 1) { if (u.t >= 0) { scene.remove(s); s.material.dispose(); MKFX.list.splice(i, 1); } continue; }
     if (a < 0) { s.visible = false; continue; } s.visible = true;
     if (u.ring) { const k = 1 - (1 - a) * (1 - a), sz = u.size * 2 * (.25 + .75 * k); s.scale.set(sz, sz, 1); s.position.copy(u.p0); s.material.opacity = (1 - a) * .9; }
-    else { const t = a * u.life / 1000, sz = u.size * (a < .15 ? a / .15 : 1 - (a - .15) / .85); s.scale.set(Math.max(.001, sz), Math.max(.001, sz), 1); s.position.set(u.p0.x + u.vx * t, u.p0.y + u.vy * t * .8, u.p0.z); s.material.opacity = 1 - a * a; }
+    else { const t = a * u.life / 1000, sz = u.size * (a < .15 ? a / .15 : 1 - (a - .15) / .85); s.scale.set(Math.max(.001, sz), Math.max(.001, sz), 1); s.position.set(u.p0.x + u.vx * t, u.p0.y + u.vy * t * .8 - (u.gr || 0) * t * t, u.p0.z + (u.vz || 0) * t); s.material.opacity = 1 - a * a; }
   }
 }
 const NPCS = [
@@ -971,8 +971,18 @@ const DET = { on: false, band: 0 };   // band＝聽法：0 平常聽（日常聲
 const bandOf = o => /^down/.test(o.sp.k) ? 1 : /^odd/.test(o.sp.k) ? 2 : 0;   // 探測器：手機按下才開；開了才聽得到聲音點、看得到靠近的光圈
 function spotGet(id) { return SPOT.list.find(o => o.sp.id === id); }
 function spotSave() { try { localStorage.setItem('tunein.codex', JSON.stringify(SPOT.got)); } catch (e) {} }
+/* ═════════ [P116] 收到聲音時「小鎮自己動」：以聲音點為中心，一道輕輕的彈跳波往外傳（草、花、樹、房子、Ping 依距離先後彈一下），不放任何貼圖粒子；找到越多，草越愛搖 ═════════ */
+const TOWNFX = { t0: -1e9, x: 0, z: 0, n: 0 }; window.__tfx = TOWNFX;
+function townCount() { try { return Math.min(7, Object.keys(SPOT.got).filter(k => k !== 's01').length); } catch (e) { return 0; } }
+function townGlow() { return { sat: townCount() * .02, gain: 0 }; }
+function townCelebrate(o, now) { TOWNFX.t0 = now; TOWNFX.x = o.g.position.x; TOWNFX.z = o.g.position.z; }
+function townFxFrame(now, dt) {
+  const age = (now - TOWNFX.t0) / 1000, B = UN.uBn.value; if (age < 0 || age > 3.6) { if (B.w !== 0) B.set(0, 0, -99, 0); return; }
+  B.set(TOWNFX.x, TOWNFX.z, age, Math.max(0, 1 - age / 3.6));
+}
 function spotTake(id) {
   const o = spotGet(id); if (!o || o.got) return; o.got = true; o.tk = performance.now(); SPOT.got[id] = Date.now(); spotSave();
+  try { townCelebrate(o, performance.now()); } catch (e) { console.error('townCelebrate', e); }   /* [P113] 收到聲音：小鎮整個反應 */
   post({ tunein: 'spotGot', id, n: Object.keys(SPOT.got).length, total: SPOT.list.length });
   try { api('/spotgot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id }) }); } catch (e) {}
 }
@@ -1118,7 +1128,7 @@ function buildRain() {
     vertexShader: `uniform float uT; uniform vec3 uC; attribute vec2 corner; varying float vA;
       void main(){ vec3 b = position; float y = mod(b.y - uT * 11. * max(corner.y, 1.), 12.); vec2 xz = b.xz + vec2(.25, .1) * (12. - y) * .25; xz = mod(xz - uC.xz + 15., 30.) - 15.;
         vec3 p = vec3(uC.x + xz.x, y, uC.z + xz.y); vec3 dir = normalize(vec3(.22, -1., .08)); vec3 cv = normalize(p - cameraPosition); vec3 r = normalize(cross(dir, cv));
-        float up = corner.y > .5 ? 1. : 0.; p += -dir * up * .55 + r * corner.x * .011; float dc = distance(p, cameraPosition); vA = smoothstep(0., 1.5, y) * smoothstep(3., 7., dc) * (1. - smoothstep(16., 26., dc));
+        float up = corner.y > .5 ? 1. : 0.; p += -dir * up * .2 + r * corner.x * .011; float dc = distance(p, cameraPosition); vA = smoothstep(0., 1.5, y) * smoothstep(3., 7., dc) * (1. - smoothstep(16., 26., dc));
         gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.); }`,
     fragmentShader: `uniform float uA; varying float vA; void main(){ gl_FragColor = vec4(vec3(1.), .85 * vA * uA); }` });
   const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; mesh.visible = false; mesh.renderOrder = 9; scene.add(mesh); RAIN.mesh = mesh;
@@ -1153,7 +1163,7 @@ function weatherFx(dt) {
   ['dim', 'sat', 'lift', 'sun', 'amb', 'cl', 'wind', 'rain', 'fog', 'cs', 'gain', 'wg', 'wf', 'wr', 'wc'].forEach(k => { c[k] = f(c[k], t[k]); });
   for (let i = 0; i < 3; i++) c.tint[i] = f(c.tint[i], t.tint[i]);
   c.top.lerp(t.top, s); c.mid.lerp(t.mid, s); c.hor.lerp(t.hor, s);
-  UN.uWxDim.value = c.dim; UN.uWxSat.value = c.sat - 1; UN.uWxLift.value = c.lift; UN.uWxGain.value = c.gain; if (window.__WU) { __WU.uWG.value = c.wg; __WU.uWF.value = c.wf; __WU.uWR.value = c.wr; __WU.uWC.value = c.wc; } UN.uWxTint.value.set(c.tint[0], c.tint[1], c.tint[2]); UN.uCl.value = c.cl; UN.uWind.value = c.wind;
+  UN.uWxDim.value = c.dim; { const tg = townGlow(); UN.uWxSat.value = c.sat - 1 + tg.sat; UN.uWxGain.value = c.gain + tg.gain; } UN.uWxLift.value = c.lift; if (window.__WU) { __WU.uWG.value = c.wg; __WU.uWF.value = c.wf; __WU.uWR.value = c.wr; __WU.uWC.value = c.wc; } UN.uWxTint.value.set(c.tint[0], c.tint[1], c.tint[2]); UN.uCl.value = c.cl; UN.uWind.value = c.wind + townCount() * .06;
   SKY_TOP.copy(c.top); SKY_MID.copy(c.mid); HOR.copy(c.hor);
   SUN_COL.copy(WX_BASE.sun).multiplyScalar(c.sun); sun.intensity = Math.max(.15, c.sun);
   UN.uAmbU.value.copy(WX_BASE.ambU).multiplyScalar(c.amb); UN.uAmbM.value.copy(WX_BASE.ambM).multiplyScalar(c.amb); UN.uAmbD.value.copy(WX_BASE.ambD).multiplyScalar(c.amb);
@@ -1542,7 +1552,7 @@ function frame(now) {
   if (fr % 10 === 0) plantNearFrame();
   NPCS.forEach(n => { n.m.position.y = n.m.userData.by - .4 + Math.sin(now / 1000 * 3.2) * .12; if (n.obj.userData.mixer) n.obj.userData.mixer.update(dt); mkFrame(n, now, dt); }); mkFxFrame(now);
   { const p = me.obj.position; sun.target.position.set(Math.round(p.x / 2) * 2, 0, Math.round(p.z / 2) * 2); sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 90); }
-  UN.uTime.value = now / 1000; try { dustFrame(now); } catch (e) { DUST.n = 0; } updateGrass(me.x, me.z); grassChunkFrame(me.x, me.z); fxFrame(now, dt); weatherFx(dt); spotFrame(now, dt); if (fr % 15 === 0) sndSend();
+  UN.uTime.value = now / 1000; try { dustFrame(now); } catch (e) { DUST.n = 0; } updateGrass(me.x, me.z); grassChunkFrame(me.x, me.z); fxFrame(now, dt); weatherFx(dt); spotFrame(now, dt); try { townFxFrame(now, dt); } catch (e) { if (!window.__tfxErr) { window.__tfxErr = 1; console.error('townFxFrame', e); } } if (fr % 15 === 0) sndSend();
   window.__sky.position.copy(cam.position); window.__skyMat.uniforms.t.value = WEA.cx;
   // 鏡頭（Unity CameraFollow）：在 Ping 後方 6.5 公尺、高 3.5 公尺，看向前方 3.5 公尺、高 1.2 公尺
   const fx = Math.sin(me.yaw), fz = Math.cos(me.yaw);
