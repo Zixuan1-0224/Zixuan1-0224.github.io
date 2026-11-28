@@ -26,7 +26,7 @@ try { const x = new XMLHttpRequest(); x.open('GET', './ui_config.json?' + (Date.
 try { document.fonts.load('700 34px "jf-openhuninn"'); } catch (e) {}
 const QP = new URLSearchParams(location.search), DEBUG = QP.get('debug') === '1';
 let PID = QP.get('pid') || '';
-const AREA = 270, HALF = AREA / 2;                       // 手機地圖 0–320 × 0–290 對應到 ±135 公尺
+const AREA = 360, HALF = AREA / 2;                       // [P91] 手機地圖 0–320 × 0–290 對應到 ±180 公尺＝Unity PlayAreaBounds 400 × PingSpawner.insideRatio .9（原本 270 是場地還是 300 時的數字，場地放大後兩邊位置越走越差）
 const mapToWorld = (px, py) => [(px / 320 - .5) * AREA, (.5 - py / 290) * AREA];   // → Unity 座標 (x, z)
 const worldToMap = (x, z) => [Math.max(0, Math.min(320, (x / AREA + .5) * 320)), Math.max(0, Math.min(290, (1 - (z / AREA + .5)) * 290))];
 const U = (x, y, z) => new THREE.Vector3(x, y, -z);      // Unity → Three（z 取負，畫面左右和 Unity 一樣）
@@ -68,7 +68,8 @@ vec3 uGrade(vec3 c){
   g = uSoftLight(g, mix(vec3(.5), vec3(.3098,.5608,.6510), 1.-t));
   g = uSoftLight(g, mix(vec3(.5), vec3(1.,.9020,.7098), t));
   g = g*vec3(.70,.68,.66) + vec3(.20,.20,.17);   /* [P82] 對齊 Unity 實測：草(150,195,118)／路(223,208,153) */
-  g = g*vec3(.83,.81,.79) + vec3(-.035,.01,-.01); { float lg = dot(g, vec3(.2126,.7152,.0722)); g = mix(vec3(lg), g, 1.0); } g = g*vec3(1.10,1.0,1.10) + vec3(.05,.035,.07);   /* [P89] 草地實測：網頁 (102,170,77)／飽和.57 vs Unity (154,187,127)／.36 → 降飽和、墊高紅藍 */   /* [P85/P88] 手機實拍比對（含光暈）：網頁整體偏亮偏白，RGB 平均比 Unity 高 R+32／G+14／B+30、飽和 .26 vs .34 → 墊高量拿掉、飽和 1.18、光暈 .32→.18 */
+  g = g*vec3(.83,.81,.79) + vec3(-.035,.01,-.01); { float lg = dot(g, vec3(.2126,.7152,.0722)); g = mix(vec3(lg), g, 1.0); } { float gw = clamp((g.g - max(g.r, g.b))*5., 0., 1.); g = mix(g, g*vec3(1.10,1.0,1.10) + vec3(.05,.035,.07), gw); }   /* [P91] 只有「綠色為主」的像素（草地）才墊高紅藍；天空、山、路不再被染成淡紫 */   /* [P89] 草地實測：網頁 (102,170,77)／飽和.57 vs Unity (154,187,127)／.36 → 降飽和、墊高紅藍 */   /* [P85/P88] 手機實拍比對（含光暈）：網頁整體偏亮偏白，RGB 平均比 Unity 高 R+32／G+14／B+30、飽和 .26 vs .34 → 墊高量拿掉、飽和 1.18、光暈 .32→.18 */
+  g = (g - .58)*1.16 + .58;   /* [P91] 加對比：畫面不再發白、發霧（暗處回到有層次的深綠，亮處維持明亮） */
   return pow(clamp(g, 0., 1.), vec3(2.2));
 }
 float uHash3(vec3 p){ p = fract(p*.3183099 + .1); p *= 17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
@@ -83,7 +84,7 @@ const f1 = x => (+x).toFixed(5);
 const FOG_N = 140, FOG_F = 330;
 
 /* ═════════ [T22] 光暈（Unity Bloom 的近似：強度 .45／門檻 .85／散射 .7）：把畫面縮小複製一份，用 CSS 取亮部＋模糊＋「濾色」疊回去；很省效能，要關或調整改 BLOOM ═════════ */
-const BLOOM = { on: true, opacity: .18, every: /[?&]t=1|Mobi|Android|iPhone|iPad/.test(navigator.userAgent) ? 5 : 2, scale: 6 };   /* [P89] 手機：WebGL→2D canvas 複製很貴，改每 5 張更新一次、縮小 6 倍 */   // opacity 光暈強度（0 無～1 很夢幻）／every 每幾張畫面更新一次／scale 縮小倍數（越大越省）
+const BLOOM = { on: true, opacity: .1, every: /[?&]t=1|Mobi|Android|iPhone|iPad/.test(navigator.userAgent) ? 5 : 2, scale: 6 };   /* [P89] 手機：WebGL→2D canvas 複製很貴，改每 5 張更新一次、縮小 6 倍 */   // opacity 光暈強度（0 無～1 很夢幻）／every 每幾張畫面更新一次／scale 縮小倍數（越大越省）
 let glowCv = null, glowCx = null, glowN = 0;
 function glowFrame() {
   if (!BLOOM.on) return; if (!glowCv) { glowCv = document.createElement('canvas'); glowCv.id = 'glow'; glowCv.style.opacity = BLOOM.opacity; document.body.appendChild(glowCv); glowCx = glowCv.getContext('2d'); }
@@ -1059,7 +1060,7 @@ function rainTrigger() { if (!RAIN.mesh) return; RAIN.on = true; RAIN.t0 = perfo
 const WX_BASE = { sun: SUN_COL.clone(), ambU: UN.uAmbU.value.clone(), ambM: UN.uAmbM.value.clone(), ambD: UN.uAmbD.value.clone() };
 const WX_PROF = {   // dim 變暗／sat 飽和度／tint 色偏／lift 霧白／sun 太陽強度(倍)／amb 環境光(倍)／cl 雲量門檻(越低雲越多)／wind 風／rain 雨／fog 霧罩／cs 雲速
   clear:  { dim: .1,  sat: 1,   tint: [1, 1, 1],         lift: 0,   sun: 1,    amb: 1,    cl: .66, wind: .1,  rain: 0, fog: 0, cs: 1, top: C(.26, .56, .86), mid: C(.56, .74, .88), hor: C(.80, .89, .90) },
-  partly: { dim: .12, sat: 1.0,  tint: [1, 1, 1],        lift: 0,   sun: .92,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.40, .62, .86), mid: C(.68, .81, .90), hor: C(.87, .93, .94) },
+  partly: { dim: .06, sat: 1.0,  tint: [1, 1, 1],        lift: 0,   sun: 1,   amb: 1.04, cl: .5,  wind: .2,  rain: 0, fog: 0, cs: 1.6, top: C(.40, .62, .86), mid: C(.68, .81, .90), hor: C(.87, .93, .94) },
   cloud:  { dim: .35, sat: .75, tint: [-.03, -.01, .02], lift: .08, sun: .45,  amb: 1.12, cl: .34, wind: .15, rain: 0, fog: 0, cs: 1, top: C(.58, .65, .72), mid: C(.74, .79, .83), hor: C(.84, .87, .88) },
   fog:    { dim: .2,  sat: .55, tint: [0, .01, .02],     lift: .3,  sun: .35,  amb: 1.2,  cl: .3,  wind: 0,   rain: 0, fog: 1, cs: .4, top: C(.76, .81, .83), mid: C(.83, .87, .88), hor: C(.9, .93, .93) },
   rain:   { dim: .55, sat: .68, tint: [-.12, -.05, .08], lift: .05, sun: .28,  amb: .95,  cl: .3,  wind: .45, rain: 1, fog: 0, cs: 2, top: C(.4, .47, .56), mid: C(.55, .62, .68), hor: C(.7, .76, .79) },

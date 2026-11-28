@@ -1585,3 +1585,24 @@ body.ufull #seedTray.open .sdx-go.ghost{background:#fff;border:2px solid rgba(62
 #flwCard .fcT b{font-size:16px}
 #flwCard .fcT span{font-size:14px;opacity:1;color:#5A4A78}
 #flwCard .fcB button{min-height:44px;font-size:16px}
+
+/* ═════ [P91] 遊戲風格整理（P30 的半透明白圓鈕蓋掉了遊戲風粗墨線；方向鍵浮在草地上看不清楚；探測器鈕只佔一半） ═════
+   規則：墨色 #3E2A5A 3px 邊＋硬陰影、紙色底、最小觸控 44（方向鍵 64、主鈕 56）、字級 ≥14、對比 ≥4.5:1；按下＝往下沉 3px（不位移版面） */
+body.ufull #mapWrap.ufull{border:3px solid #3E2A5A;box-shadow:0 4px 0 #3E2A5A}
+body.ufull #mapWrap .dgrp{grid-template-columns:repeat(2,64px);gap:10px}
+body.ufull #mapWrap .dgrp .dk{width:64px;height:64px;border-radius:20px;border:3px solid #3E2A5A;background:#FFFCEB;box-shadow:0 4px 0 #3E2A5A;color:#3E2A5A;-webkit-backdrop-filter:none;backdrop-filter:none;transition:transform .08s,box-shadow .08s,background-color .08s}
+body.ufull #mapWrap .dgrp .dk svg{width:30px;height:30px;stroke-width:3}
+body.ufull #mapWrap .dgrp .dk.on,body.ufull #mapWrap .dgrp .dk:active{transform:translateY(3px);box-shadow:0 1px 0 #3E2A5A;background:#F2619C;color:#fff}
+body.ufull .guide{border:3px solid #3E2A5A;box-shadow:0 4px 0 #3E2A5A;background:#FFFCEB}
+body.ufull .guide .tkb{width:44px;height:44px;border:3px solid #3E2A5A;box-shadow:0 3px 0 #3E2A5A;background:#E7BEF8;color:#3E2A5A}
+body.ufull .guide .tkb svg{width:22px;height:22px}
+body.ufull #t3hud .t3p{border:2px solid #3E2A5A;background:#FFFCEB;box-shadow:0 2px 0 #3E2A5A}
+body.ufull .sdx-gp{border:2px solid #3E2A5A;box-shadow:0 2px 0 #3E2A5A}
+body.ufull .dockbar:has(>#btnMain[hidden]) #btnDet,body.ufull .dockbar:has(>#btnMain[style*="display: none"]) #btnDet{grid-column:1/-1}
+#btnDet.sdx-det{min-height:56px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:18px;font-weight:800;color:#3E2A5A;background:#FFFCEB;border:3px solid #3E2A5A;box-shadow:0 4px 0 #3E2A5A;border-radius:999px;opacity:1}
+#btnDet.sdx-det::before{content:"";width:14px;height:14px;border-radius:50%;background:#D9D3E6;border:2px solid #3E2A5A;flex:none}
+#btnDet.sdx-det[aria-pressed="true"]{background:#F2619C;color:#fff}
+#btnDet.sdx-det[aria-pressed="true"]::before{background:#EDE986}
+#btnDet.sdx-det:active{transform:translateY(3px);box-shadow:0 1px 0 #3E2A5A}
+#btnDet.sdx-det:disabled{background:#E7DFF3;color:#3E2A5A;opacity:1}
+body.ufull .chip{border:2px solid #3E2A5A;box-shadow:0 2px 0 #3E2A5A;background:#FFFCEB;color:#3E2A5A;font-weight:800}
