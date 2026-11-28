@@ -533,8 +533,9 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       if (n > 0) { t.h = '種花'; t.p = '按「種花」'; return t; }
       const I = DETS.info;
       if (DETS.on && I && I.left <= 0 && I.locked > 0) { t.h = '找居民聊聊'; t.p = '他們知道更多聲音'; return t; }
-      if (DETS.on) { t.h = '跟著箭頭'; t.p = BANDS[DETS.band] + '中'; return t; }
-      t.h = '找聲音'; t.p = '選聽法，再開探測器'; return t;
+      const pn = S.planted.length, pg = pn ? '已種 ' + pn + '／5　' : '';
+      if (DETS.on) { t.h = '跟著箭頭'; t.p = pg + '靠近聲音再調頻'; return t; }
+      t.h = pn >= 5 ? '小鎮熱鬧起來了' : '找聲音'; t.p = pn >= 5 ? '繼續逛逛，或幫別人找' : pg + '打開探測器，聽聽哪裡有聲音'; return t;
     } } catch (e) {}
     if (awake >= 4) { t.h = '四位居民都醒了'; t.p = '等時間到，看小鎮的結局'; return t; }
     if (!S.quest || S.woke[S.quest]) { const gv = giver(), gn = N[gv]; t.id = gv; t.h = rname(gv) + '好像有話想說'; t.p = '走近一點，他會開口'; return t; }
@@ -611,7 +612,17 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     return rows;
   }
   const rname = id => { const r = (S.rs || []).find(x => x.id === id); return (r && r.name) || (N[id] && N[id].who) || ''; };   // 居民名字以伺服器為準（市場阿姨、釣魚大叔）
-  function openQuests() {   // 任務單（重做）：頂端一句「下一步」，下面每位居民一行（在哪、想聽什麼、醒了沒），最後是我的種子
+  /* [P101] 聲音圖鑑（取代舊的「叫醒居民」任務單）：8 個聲音點，找到的顯示彩蛋，沒找到的顯示 NPC 線索＝玩家永遠知道下一步 */
+  function bookGet() { try { return JSON.parse(localStorage.getItem('tunein.book') || '{}'); } catch (e) { return {}; } }
+  function bookAdd(id) { try { const b = bookGet(); b[id] = 1; localStorage.setItem('tunein.book', JSON.stringify(b)); } catch (e) {} }
+  function openQuests() {
+    const L = (CODEX.cfg && CODEX.cfg.spots) || [], b = bookGet(), n = L.filter(x => b[x.id]).length;
+    const li = L.map(x => b[x.id]
+      ? '<li class="qn"><span class="qt"><b>✓ ' + x.name + '</b><em>' + (x.npc ? x.npc + '：' : '') + x.egg + '</em></span></li>'
+      : '<li class="qn"><span class="qt"><b>？ 還沒找到</b><em>' + (x.npc ? x.npc + '：' : '') + x.clue + '</em></span></li>').join('');
+    openSheet('<div class="sh-h"><span></span><div><h2>聲音圖鑑　' + n + '／' + L.length + '</h2></div>' + CLOSE + '</div><p class="murmur">打開探測器，跟著箭頭找；找不到就去問問居民。</p><ul class="qlist">' + li + '</ul>');
+  }
+  function openQuestsOld() {   // 舊的任務單（已停用）：頂端一句「下一步」，下面每位居民一行（在哪、想聽什麼、醒了沒），最後是我的種子
     const rs = S.rs || [], sd = seedsGet();
     const anyMet = rs.some(r => r.met), anyGot = rs.some(r => (r.got || []).length), nDone = MAIN.filter(id => { const r = rs.find(x => x.id === id); return r && r.done; }).length;
     const st = [['聊聊', anyMet], ['收聲音', sd.length > 0 || anyGot], ['種花', anyGot]];
@@ -1063,12 +1074,12 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* ═════════ [P17] 結局與離場卡 ═════════ */
   function openSettle() {
     if (S.ended) return; S.ended = true; try { localStorage.removeItem('tunein.sess'); } catch (e) {} closeSheet(); clearInterval(S.settleTimer);
-    const a = MAIN.filter(id => S.woke[id]).length, kinds = new Set(S.planted.map(x => x.name)).size, aq = S.planted.length ? S.planted.reduce((t, x) => t + (x.q || 0), 0) / S.planted.length : 0;
-    let E = (a >= 4 && ((NET.lv | 0) >= 2 || S.marks >= 1)) ? ['小鎮好熱鬧', 'Blip 坐到你身邊，耳朵輕輕晃'] : (a >= 4 && NET.on ? ['小鎮醒了', '小鎮醒了，熱鬧裡還留著一個安靜的角落。'] : ENDS[a]);
+    const bk = bookGet(), SPL = ((CODEX.cfg && CODEX.cfg.spots) || []).filter(x => x.id !== 's01'), a = SPL.filter(x => bk[x.id]).length, kinds = new Set(S.planted.map(x => x.name)).size, aq = S.planted.length ? S.planted.reduce((t, x) => t + (x.q || 0), 0) / S.planted.length : 0;
+    let E = (a >= 7 || (NET.lv | 0) >= 2) ? ['小鎮好熱鬧', 'Blip 坐到你身邊，耳朵輕輕晃'] : a >= 4 ? ['小鎮熱鬧起來了', '好多沒聽過的聲音疊在一起。'] : a >= 2 ? ['小鎮慢慢熱鬧起來', '你找到的聲音，讓小鎮多了一點熱鬧。'] : ['小鎮靜悄悄', '小鎮還很安靜。下次再來，一起幫它找聲音吧。'];   /* [P105] 結局改看找到幾種聲音（原本看叫醒幾位居民） */
     if (S.planted.length) E = [E[0], E[1] + (aq >= .75 ? '　你聽得很專心，種下的聲音又亮又久。' : '　你種下的聲音，讓小鎮多了一點熱鬧。')];
     S.end = E; $('#stRound').textContent = '時間到'; $('#stAll').textContent = E[0];
-    const meter = '<div class="rsm"><div class="rsm-l"><span>開始　好安靜</span><b>現在　' + a + '／4 位醒了</b></div><div class="rsm-b">' + MAIN.map(id => '<i class="' + (S.woke[id] ? 'on ' : '') + 'l-' + N[id].cls + '"></i>').join('') + '</div></div>';   // [P38] 結果頁：小鎮從安靜到熱鬧
-    $('#stTiles').innerHTML = meter + MAIN.map(id => { const n = N[id], on = !!S.woke[id]; return '<div class="tile l-' + n.cls + (on ? ' on' : '') + '"><span class="ti">' + icon(n.icon) + '</span><b>' + n.who + '</b><span class="st">' + (on ? n.fx : '還在睡') + '</span></div>'; }).join('');
+    const meter = '<div class="rsm"><div class="rsm-l"><span>開始　靜悄悄</span><b>現在　' + a + '／' + (SPL.length || 7) + ' 種聲音</b></div><div class="rsm-b" style="grid-template-columns:repeat(' + (SPL.length || 7) + ',1fr)">' + SPL.map((x, i) => '<i class="' + (bk[x.id] ? 'on ' : '') + 'l-' + ['flower', 'house', 'stall', 'river'][i % 4] + '"></i>').join('') + '</div></div>';
+    $('#stTiles').innerHTML = meter + SPL.map(x => '<div class="tile' + (bk[x.id] ? ' on' : '') + '"><b>' + x.name + '</b><span class="st">' + (bk[x.id] ? '聽到了' : '還沒聽到') + '</span></div>').join('');
     $('#stLine').textContent = E[1]; $('#stMine').hidden = true; const pr = $('#stProg'); pr.classList.remove('run'); void pr.offsetWidth; pr.classList.add('run');
     let left = SETTLE_MS / 1000; $('#stCount').textContent = '離場卡 ' + left + ' 秒後出現'; $('#stCards').hidden = false;
     show('settle'); if (a >= 4) sfx.wake();
@@ -1077,11 +1088,11 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function showLeave() {
     clearInterval(S.settleTimer); const E = S.end || ENDS[0]; $('#lvName').textContent = E[0];
     $('#lvLine').textContent = E[1].replace(new RegExp('^' + E[0] + '[。，,]?\\s*'), '') || E[1];
-    const aw = MAIN.filter(id => S.woke[id]).length, fr = FR.filter((f, i) => S.friends[i]).length, sw = S.notes.filter(n => n.src).length;
-    const dots = MAIN.map(id => '<i style="background:var(--h-' + N[id].cls + ');opacity:' + (S.woke[id] ? 1 : .22) + '"></i>').join('');
+    const bk2 = bookGet(), SPL2 = ((CODEX.cfg && CODEX.cfg.spots) || []).filter(x => x.id !== 's01'), aw = SPL2.filter(x => bk2[x.id]).length, fr = FR.filter((f, i) => S.friends[i]).length, sw = S.notes.filter(n => n.src).length;
+    const dots = SPL2.map(x => '<i style="background:var(--h-flower);opacity:' + (bk2[x.id] ? 1 : .22) + '"></i>').join('');
     const tile = (n, l, x) => '<div class="lvt"><b class="num">' + n + '</b><span>' + l + '</span>' + (x || '') + '</div>';
     const found = S.cards.concat(S.planted), seenN = {}, uniq = found.filter(c => !seenN[c.name] && (seenN[c.name] = 1));
-    $('#lvLittle').innerHTML = tile(aw + '/4', '叫醒居民', '<span class="lvd2">' + dots + '</span>') + tile(uniq.length, '發現的聲音') + tile(S.planted.length, '種下的聲音') + tile(fr, '新朋友');
+    $('#lvLittle').innerHTML = tile(aw + '/' + (SPL2.length || 7), '找到的聲音', '<span class="lvd2">' + dots + '</span>') + tile(S.planted.length, '種下的聲音') + tile(fr, '新朋友');
     $('#lvSounds').innerHTML = '<p class="lvst">我發現的聲音</p><div class="lvchips">' + (uniq.length ? uniq.map(c => '<span class="lvchip l-' + (c.cls || 'flower') + '"><i></i>' + c.name + '</span>').join('') : '<span class="lvnone">這輪還沒收到聲音，下次去聽聽看</span>') + '</div>';
     $('#lvSounds').hidden = false;
     NetLeave();   // 看結果時 Ping 先離場，不留在小鎮裡；再玩一次時才重新加入（會有出現動畫）
@@ -1333,17 +1344,17 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=118&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=119&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
   const CODEX = { cfg: null };
   try { const x = new XMLHttpRequest(); x.open('GET', './sound_spots.json?' + (Date.now() / 6e4 | 0), false); x.send(); if (x.status === 200) CODEX.cfg = JSON.parse(x.responseText); } catch (e) {}
   const DETS = { on: false, t0: 0, near: false, tm: 0, band: 0, until: 0, cool: 0 };
-  const DET_ON_MS = 10000, DET_COOL_MS = 12000, BANDS = ['平常聽', '放慢聽', '變調聽'];   // [P39] 探測器只能開 10 秒，之後充電 12 秒；三種聽法各聽得到不同的聲音
+  const DET_FULL = 18, DET_RECH = 9, DET_MIN = .25, DET_ON_MS = 10000, DET_COOL_MS = 12000, BANDS = ['平常聽', '放慢聽', '變調聽'];   // [P39] 探測器只能開 10 秒，之後充電 12 秒；三種聽法各聽得到不同的聲音
   function detLabel() {
-    const b = $('#btnDet'); if (!b) return; const now = Date.now(), lim = S.tutDone, cool = lim && DETS.cool > now;
-    b.textContent = DETS.on ? '探測器　開' : cool ? '充電中　' + Math.ceil((DETS.cool - now) / 1000) + ' 秒' : '探測器　關';
+    const b = $('#btnDet'); if (!b) return; const now = Date.now(), lim = S.tutDone, en = DETS.en == null ? 1 : DETS.en, cool = lim && !DETS.on && en < DET_MIN;   /* [P101] 能量制：開著會耗電、關著慢慢充，沒電只要關著等一下；要選擇什麼時候開 */
+    b.textContent = !lim ? (DETS.on ? '探測器　開' : '探測器　關') : DETS.on ? '探測器　開　剩 ' + Math.max(1, Math.ceil(en * DET_FULL)) + ' 秒' : en >= .995 ? '探測器　關　電量滿' : '探測器　關　充電 ' + Math.round(en * 100) + '%';
     b.disabled = !!cool && !DETS.on; b.classList.toggle('cool', !!cool && !DETS.on); b.classList.toggle('on', DETS.on);
     document.body.classList.toggle('deton', !!DETS.on); const row = $('#bandRow'); if (row) { const f0 = $('#uFrame'), r0 = f0 && !f0.hidden ? f0.getBoundingClientRect() : null; if (r0 && r0.width > 40) row.style.top = (r0.top + 58) + 'px'; const multi = !!(CODEX.cfg && CODEX.cfg.spots.some(x => x.type && x.type !== 'env')); if (!multi) DETS.band = 0; const show = multi && lim && DETS.on && U.m === 1 && S.started && !S.ended && !!CODEX.cfg;   /* [P98] 聲音點全是日常聲音時不顯示聽法切換（放慢／變調沒東西可聽，會讓人困惑） */ if (row.hidden === show) row.hidden = !show; if (show) bandIntro(); $$('#bandRow button').forEach((x, i) => x.classList.toggle('on', i === DETS.band)); }
   }
@@ -1352,7 +1363,9 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     openSheet('<div class="sh-h"><span></span><div><h2>聽法</h2></div>' + CLOSE + '</div><ul class="bandhow"><li><b>探測器開著就能一直找</b><span>不用充電</span></li><li><b>聽不到？</b><span>換一種聽法</span></li></ul><button class="btn btn-ink btn-block" type="button" id="bandOk">知道了</button>');
     const b = $('#bandOk'); if (b) b.addEventListener('click', () => { try { localStorage.setItem('tunein.bandIntro', '1'); } catch (e) {} closeSheet(); });
   }
-  function detTick() { try { if (false && DETS.on && S.tutDone && Date.now() > DETS.until) { DETS.cool = Date.now() + DET_COOL_MS; detSet(false); toast('探測器沒電了　充電 ' + DET_COOL_MS / 1000 + ' 秒', '', 2600); } detLabel(); } catch (e) {} }
+  function detTick() { try { const now = Date.now(), dt = Math.min(1, (now - (DETS.lt || now)) / 1000); DETS.lt = now; if (DETS.en == null) DETS.en = 1;
+    if (S.tutDone) { if (DETS.on && !TN.on) { DETS.en = Math.max(0, DETS.en - dt / DET_FULL); if (DETS.en <= 0) { detSet(false); toast('探測器沒電了，先關著充一下', '', 2600); } } else if (!DETS.on) DETS.en = Math.min(1, DETS.en + dt / DET_RECH); } else DETS.en = 1;
+    detLabel(); } catch (e) {} }
   function bandSet(i) { DETS.band = i; DETS.info = null; toTown({ tunein: 'band', v: i }); sfx.tap(); tnClose(); detLabel(); if (DETS.on) detHint(); }
   // [P28c] 探測器音效：開著時有「嘀…」掃描聲（越靠近聲音越密）；進入聽得到的範圍有「叮叮叮」偵測提示；靠到可調頻有確認聲。音量改 vol 參數
   function dtTone(f1, f2, vol, dur, delay) {
@@ -1475,10 +1488,16 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function cuePlay(k) {
     try { ensureAudio(); const e = window.__env, r = e ? .85 + .3 * ((e.at || .5) * .6 + (e.sw || .5) * .4) : 1; (CUE[k] || CUE.bird)(r); } catch (e) {}
   }
+  function npcSay(who, text, tag) {   // NPC 說話卡（沿用小鎮對話卡樣式）：名字、一個氣泡、一顆「好」鈕
+    if (TN.on || S.talkOn) return; const cls = who === '老鼠奶奶' ? 'house' : who === '釣魚的青蛙' ? 'river' : 'flower';
+    openSheet('<div class="dlg l-' + cls + '"><div class="dlg-who"><b>' + escH(who) + '</b>' + (tag ? '<span class="dlg-n">' + escH(tag) + '</span>' : '') + CLOSE + '</div><div class="dlg-bub">' + escH(text) + '</div><button class="dlg-go" type="button" id="dlgOk">好，記住了</button></div>');
+    try { $('#sheet').classList.add('dlgmode'); } catch (x) {} const k = $('#dlgOk'); if (k) k.addEventListener('click', () => { try { sfx.tap(); } catch (x) {} closeSheet(); });
+    try { navigator.vibrate && navigator.vibrate(20); } catch (x) {}
+  }
   function tnDone() {
     const sp = TN.sp; const sd = seedsGet(); sd.push({ k: sp.k, l: 'f' }); seedsSet(sd); toTown({ tunein: 'spotTake', id: sp.id }); tnClose();
-    cuePlay(sp.k); seedFly(); let live = ''; try { const e = window.__env || {}, rw = window.__envRaw || {}; if (sp.k === 'fire' && rw.qmag) live = '　今天台灣附近有 M' + (+rw.qmag).toFixed(1) + ' 的地震，土裡多了一聲咚。'; else if (rw.pm25 != null && sp.k === 'chime') live = '　現在 PM2.5 是 ' + Math.round(rw.pm25) + '，' + (rw.pm25 < 15 ? '空氣很乾淨，聲音特別亮。' : '聲音有一點悶悶的。'); } catch (x) {}
-    toast('收下了：' + sp.name + (sp.egg ? '　' + (sp.npc ? sp.npc + '：' : '') + sp.egg : '，變成種子了') + live, 'ok', sp.egg ? 6800 : 3000); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
+    cuePlay(sp.k); try { bookAdd(sp.id); } catch (x) {} seedFly(); let live = ''; try { const e = window.__env || {}, rw = window.__envRaw || {}; if (sp.k === 'fire' && rw.qmag) live = '　今天台灣附近有 M' + (+rw.qmag).toFixed(1) + ' 的地震，土裡多了一聲咚。'; else if (rw.pm25 != null && sp.k === 'chime') live = '　現在 PM2.5 是 ' + Math.round(rw.pm25) + '，' + (rw.pm25 < 15 ? '空氣很乾淨，聲音特別亮。' : '聲音有一點悶悶的。'); } catch (x) {}
+    if (sp.egg) setTimeout(() => npcSay(sp.npc || 'Blip', sp.egg + live, sp.name), 900); else toast('收下了：' + sp.name, 'ok', 3000);   /* [P102] 彩蛋由 NPC 用對話卡說，不再用提示條 */ try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
     try { trayRender(); } catch (e) {}
   }
   function detSet(on) {
@@ -1516,7 +1535,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function detInit() {
     const db = $('#dockbar'), bm = $('#btnMain'); if (!db || !bm || $('#btnDet')) return;
     const b = document.createElement('button'); b.id = 'btnDet'; b.type = 'button'; b.className = 'btn btn-block sdx-det'; b.textContent = '探測器　關'; b.setAttribute('aria-pressed', 'false'); b.hidden = true;
-    bm.insertAdjacentElement('afterend', b); b.addEventListener('click', () => { sfx.tap(); detSet(!DETS.on); });
+    bm.insertAdjacentElement('afterend', b); b.addEventListener('click', () => { if (S.tutDone && !DETS.on && (DETS.en == null ? 1 : DETS.en) < DET_MIN) { toast('電量還不夠，再充一下', '', 1800); return; } sfx.tap(); detSet(!DETS.on); });
     if (!$('#bandRow')) { const row = document.createElement('div'); row.id = 'bandRow'; row.className = 'bandrow'; row.hidden = true; row.setAttribute('role', 'group'); row.setAttribute('aria-label', '聽法');
       row.innerHTML = BANDS.map((n, i) => '<button type="button" data-b="' + i + '" data-s="' + n.slice(0, 2) + '" aria-label="' + n + '">' + n + '</button>').join(''); db.parentNode.insertBefore(row, db); row.addEventListener('click', e => { const x = e.target.closest('button[data-b]'); if (x) bandSet(+x.getAttribute('data-b')); }); }
   }
@@ -1749,7 +1768,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     let hb = $('#t3hud'); if (!hb) { hb = document.createElement('div'); hb.id = 't3hud'; const w = $('#mapWrap'); if (!w) return; w.appendChild(hb); }
     const pill = (p, you) => '<span class="t3p"><i style="background:' + escH(p.c || '#FFB5C1') + '"></i>' + escH(p.n) + (you ? '<em>你</em>' : '') + '</span>';
     const names = []; if (d.me && d.me.n) names.push(pill(d.me, true)); (d.others || []).slice(0, 3).forEach(p => names.push(pill(p, false))); if ((d.others || []).length > 3) names.push('<span class="t3p">+' + ((d.others || []).length - 3) + '</span>');
-    hb.innerHTML = (names.length ? '<div class="t3row">' + names.join('') + '</div>' : '') + (d.blip ? '<div class="t3say"><b>Blip</b>' + escH(d.blip) + '</div>' : '');
+    hb.innerHTML = (names.length ? '<div class="t3row">' + names.join('') + '</div>' : '') + (d.blip ? '<div class="t3say"><b>Blip</b>' + escH(d.blip) + '</div>' : '') + (d.npc && d.npc.text ? '<div class="t3say"><b>' + escH(d.npc.who) + '</b>' + escH(d.npc.text) + '</div>' : '');
     hb.hidden = !hb.innerHTML;
   });
   window.addEventListener('message', e => {
@@ -1920,7 +1939,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       if (on) { [TM.q, TM.l].forEach(x => { if (x.paused) { const pr = x.play(); if (pr && pr.catch) pr.catch(() => {}); } }); }
       const loud = (typeof GP !== 'undefined' && GP && GP.loud) || 0, x0 = Math.max(0, Math.min(1, (loud / 100 - .25) / .45)), kt = x0 * x0 * (3 - 2 * x0);
       TM.k += (kt - TM.k) * .08;
-      const duck = DETS.on ? .6 : 1;
+      const duck = (DETS.on ? .6 : 1) * Math.max(0, 1 - ((ENS && ENS.tier) || 0) * .34);   /* [P105] 合奏一層層加入時，背景音樂跟著退場（3 層以上全退），不再和合奏打架 */
       tmSet(.55 * TM.a * duck * (1 - TM.k), .3 * TM.a * duck * TM.k);
       if (!on && TM.a <= 0) [TM.q, TM.l].forEach(x => { if (!x.paused) x.pause(); });
     } catch (e) {}

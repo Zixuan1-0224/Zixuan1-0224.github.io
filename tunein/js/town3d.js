@@ -380,6 +380,14 @@ async function loadLayout() { const r = await fetch('./town_layout.json?' + (Dat
 /* ═════════ [T07] 樹、花、長椅、石頭：按區塊分組的 instanced（沒看到的區塊整組不畫） ═════════ */
 const colliders = [];   // 圓形 {x, z, r}（Unity 座標）
 const boxes = [];       // 方形 {x0, x1, z0, z1}（Unity 座標）
+/* [P102] 實體網格防穿模：樹／石頭／長椅／房子／蘑菇／花店／起司屋的真實網格都放進 SOLIDS；移動前沿行進方向用射線（膝高、腰高）檢查，碰到就不往前（會沿牆滑）。?ray=0 關閉 */
+const SOLIDS = [], RAYC = new THREE.Raycaster(), RAYON = new URLSearchParams(location.search).get('ray') !== '0';
+function rayBlocked(x0, z0, x1, z1) {   // Unity 座標 → Three 座標（z 取負）
+  const dx = x1 - x0, dz = z1 - z0, dist = Math.hypot(dx, dz); if (dist < 1e-5) return false;
+  const dir = new THREE.Vector3(dx / dist, 0, -dz / dist); RAYC.far = dist + .32; RAYC.near = 0;
+  for (const h of [.3, .8]) { RAYC.set(new THREE.Vector3(x0, h, -z0), dir); if (RAYC.intersectObjects(SOLIDS, false).length) return true; }
+  return false;
+}
 const chunks = [];      // 區塊：{mesh, cx, cz}
 const CH = 50;
 function instParts(parts, list, colors, cast) {   // parts: [{geometry, material, m}]；依區塊分組，沒看到的區塊整組不畫
@@ -393,7 +401,7 @@ function instParts(parts, list, colors, cast) {   // parts: [{geometry, material
       arr.forEach((a, i) => { d.position.copy(a.p); d.rotation.set(0, a.ry || 0, 0); d.scale.setScalar(a.s); d.updateMatrix(); mm.multiplyMatrices(d.matrix, pt.m); im.setMatrixAt(i, mm); if (colors) im.setColorAt(i, col.set(colors[a.i % colors.length])); });
       im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.computeBoundingSphere(); im.castShadow = !!cast; im.receiveShadow = true;
       if (pt.material.userData.depth) im.customDepthMaterial = pt.material.userData.depth;
-      scene.add(im); chunks.push({ mesh: im, cx, cz });
+      scene.add(im); chunks.push({ mesh: im, cx, cz }); if (cast) SOLIDS.push(im);
     });
   });
 }
@@ -443,6 +451,8 @@ function instSet(name, list, texKey, ground, cast) {
 const modelBox = name => { const b = new THREE.Box3().setFromObject(M[name].scene), s = b.getSize(new THREE.Vector3()); return { b, s }; };
 function placeStatic(name, ux, uy, uz, yaw3) {
   const o = M[name].scene; lambertize(o, name, T[name]); o.scale.setScalar(MODELS[name].s); o.rotation.y = yaw3; o.position.copy(U(ux, uy, uz)); o.traverse(m => { if (m.isMesh) { m.receiveShadow = true; m.castShadow = true; } }); scene.add(o); o.updateMatrixWorld(true);
+  if (name === 'shop' || name === 'cheese') { const tb2 = new THREE.Box3(), sz2 = new THREE.Vector3(); o.updateMatrixWorld(true); o.traverse(m => { if (!m.isMesh || !m.geometry) return; m.geometry.computeBoundingBox(); tb2.copy(m.geometry.boundingBox).applyMatrix4(m.matrixWorld); tb2.getSize(sz2);
+    if (tb2.min.y > 1.2 || tb2.max.y < .7 || (sz2.x > 20 && sz2.z > 20) || sz2.x * sz2.z < .25) return; SOLIDS.push(m); }); }   // 與花店碰撞框同樣的篩選：只收站在地上的實體，地板／高處裝飾不收
   const b = new THREE.Box3().setFromObject(o);
   if (name === 'shop') {   // 花店：整棟外框太大（把店裡面也擋掉了）→ 只擋「站在地上的實體」：牆、櫃檯、箱子；高處的架子、地板、小裝飾不擋
     const tb = new THREE.Box3(), sz = new THREE.Vector3(); let n = 0;
@@ -574,7 +584,7 @@ function buildWater(W) {
   const wood = new THREE.MeshLambertMaterial({ color: '#C99B6D' }), bg = new THREE.BoxGeometry(1, 1, 1);
   [].concat(W.bridge || [], W.fishing || []).forEach(r => { const m = new THREE.Mesh(bg, wood); m.position.set(r[1], r[2], -r[3]); m.rotation.y = -r[4] * Math.PI / 180; m.scale.set(r[5], r[6], r[7]); m.castShadow = true; m.receiveShadow = true; scene.add(m); });
   (W.bridge || []).forEach(r => { if (/^Rail/.test(r[0])) { const ry = r[4] * Math.PI / 180, hx = r[5] / 2, hz = r[7] / 2, wx = Math.abs(hx * Math.cos(ry)) + Math.abs(hz * Math.sin(ry)), wz = Math.abs(hx * Math.sin(ry)) + Math.abs(hz * Math.cos(ry)); boxes.push({ x0: r[1] - wx, x1: r[1] + wx, z0: r[3] - wz, z1: r[3] + wz }); } });   /* 橋欄杆擋住（不能穿過去、也不能跳出橋） */
-  WATER.hz = []; [].concat(W.bridge || [], W.fishing || []).forEach(r => { if (r[0] === 'Deck' || /^Ramp/.test(r[0]) || r[0] === 'Jetty') WATER.hz.push({ x: r[1], z: r[3], ry: r[4] * Math.PI / 180, hx: r[5] / 2, hz: r[7] / 2, top: r[2] + r[6] / 2 }); });   /* 走得上去的面：板、坡、碼頭的頂面高度 */
+  WATER.fish = (W.fishing || []).map(r => ({ x: r[1], z: r[3] })); WATER.hz = []; [].concat(W.bridge || [], W.fishing || []).forEach(r => { if (r[0] === 'Deck' || /^Ramp/.test(r[0]) || r[0] === 'Jetty') WATER.hz.push({ x: r[1], z: r[3], ry: r[4] * Math.PI / 180, hx: r[5] / 2, hz: r[7] / 2, top: r[2] + r[6] / 2 }); });   /* 走得上去的面：板、坡、碼頭的頂面高度 */
   (W.bridge || []).forEach(r => { if (r[0] === 'Deck' || /^Ramp/.test(r[0])) WATER.zones.push({ x: r[1], z: r[3], ry: r[4] * Math.PI / 180, hx: r[5] / 2 + .15, hz: r[7] / 2 + .15 }); });
 }
 function buildWorld(L) {
@@ -826,9 +836,37 @@ let hudKey = '';
 function hudSend() {
   if (!EMBED || !me) return;
   const nm = g => ({ n: (g.userData && g.userData.nm) || '', c: (g.userData && g.userData.nmc) || '' });
-  const o = { tunein: 'hud', me: nm(me.obj), others: Object.keys(others).map(k => nm(others[k].obj)).filter(x => x.n), blip: BLIP && BLIP.obj.visible ? BLIP.say || '' : '' };
+  const o = { tunein: 'hud', me: nm(me.obj), others: Object.keys(others).map(k => nm(others[k].obj)).filter(x => x.n), blip: BLIP && BLIP.obj.visible ? BLIP.say || '' : '', npc: VOICE.npc || null };
   const k = JSON.stringify(o); if (k === hudKey) return; hudKey = k; post(o);
 }
+
+/* ═════════ [P103] 線索台詞：Blip（靠近時輪播）＋釣魚的青蛙（碼頭附近出聲），文字全來自 sound_spots.json ═════════ */
+const VOICE = { npc: null, bi: 0, fi: 0, tB: 0, tF: 0, fishC: null };
+function voicePool(kind) {
+  const C = SPOT.cfg || {}, sp = C.spots || [];
+  if (kind === 'blip') {
+    const chat = C._blip_chat || [], clue = sp.filter(x => x.blip).map(x => [x.blip, x.bub || x.blip]), n = Object.keys(plantObjs).length;
+    const mood = n >= 6 ? [C._blip_lively] : n === 0 ? [C._blip_quiet] : [];
+    return chat.concat(clue, mood).filter(Boolean).map(t => Array.isArray(t) ? t : [t, t]);   // [完整句, 頭頂短氣泡]
+  }
+  const hello = C._npc_hello && C._npc_hello['釣魚的青蛙'], cl = sp.filter(x => x.npc === '釣魚的青蛙' && x.clue).map(x => x.clue);
+  return [hello].concat(cl).filter(Boolean).map(t => [t, t]);
+}
+function voiceTick() {
+  if (!me) return; const now = performance.now();
+  if (BLIP && BLIP.obj.visible) {   // Blip：離 6 公尺內，每 7 秒換一句，說 5 秒
+    const d = Math.hypot(BLIP.x - me.x, BLIP.z - me.z);
+    if (BLIP.srv) BLIP.loc = '';
+    else if (d < 6) { if (now - VOICE.tB > 7000) { VOICE.tB = now; const L = voicePool('blip'); if (L.length) { const q = L[VOICE.bi++ % L.length]; BLIP.loc = EMBED ? q[0] : q[1]; BLIP.locT = now; } } else if (BLIP.loc && now - VOICE.tB > 5000) BLIP.loc = ''; }
+    else BLIP.loc = '';
+    blipBub();
+  }
+  // 青蛙：站在釣魚碼頭 7 公尺內
+  let near = false; if (WATER.on && WATER.fish) for (const h of WATER.fish) { if (Math.hypot(h.x - me.x, h.z - me.z) < 7) { near = true; break; } }
+  if (near) { if (now - VOICE.tF > 7000) { VOICE.tF = now; const L = voicePool('frog'); if (L.length) { VOICE.npc = { who: '釣魚的青蛙', text: L[VOICE.fi++ % L.length][0] }; VOICE.nT = now; } } else if (VOICE.npc && now - VOICE.tF > 5500) VOICE.npc = null; }
+  else VOICE.npc = null;
+}
+setInterval(() => { try { voiceTick(); } catch (e) {} }, 500);
 setInterval(() => { try { hudSend(); } catch (e) {} }, 500);
 /* ═════════ [T21] 聲音點：小鎮裡會發出聲音的光點（探測器開啟才看得到／聽得到），靠近到 radius 內交給 play.html 的調頻面板 ═════════ */
 const SPOT = { cfg: null, list: [], got: {}, t: 0 };
@@ -1278,6 +1316,8 @@ function step(dt) {
       else { const l = nx - b.x0, r = b.x1 - nx, bo = nz - b.z0, to = b.z1 - nz, m = Math.min(l, r, bo, to); if (m === l) nx = b.x0 - PR; else if (m === r) nx = b.x1 + PR; else if (m === bo) nz = b.z0 - PR; else nz = b.z1 + PR; }
     }
     }
+    if (RAYON && SOLIDS.length && (nx !== me.x || nz !== me.z) && rayBlocked(me.x, me.z, nx, nz)) {   /* 前面有實體：先試只走 x、只走 z（貼牆滑），都被擋就停住 */
+      if (!rayBlocked(me.x, me.z, nx, me.z)) nz = me.z; else if (!rayBlocked(me.x, me.z, me.x, nz)) nx = me.x; else { nx = me.x; nz = me.z; } }
     if (WATER.on && waterBlocked(nx, nz)) { if (!waterBlocked(nx, me.z)) nz = me.z; else if (!waterBlocked(me.x, nz)) nx = me.x; else { nx = me.x; nz = me.z; } }   // 不能走進水裡（橋上可以）
     me.x = Math.max(-HALF, Math.min(HALF, nx)); me.z = Math.max(-HALF, Math.min(HALF, nz));
     if (TUT.on) { const dx = me.x - TUT.cx, dz = me.z - TUT.cz, dd = Math.hypot(dx, dz); if (dd > TUT.R + 8) { TUT.cx = me.x; TUT.cz = me.z; } else if (dd > TUT.R) { me.x = TUT.cx + dx / dd * TUT.R; me.z = TUT.cz + dz / dd * TUT.R; const t = performance.now(); if (t - TUT.edgeT > 4000) { TUT.edgeT = t; post({ tunein: 'tutEdge' }); } } }   // 教學中不走太遠
@@ -1327,7 +1367,10 @@ function applyBlip(b) {
   if (BLIP.init && BLIP.lt) { const dp = (nowT - BLIP.lt) / 1000; if (dp > .05 && dp < 2 && b.mv) { BLIP.vx = (wx - BLIP.rx) / dp; BLIP.vz = (wz - BLIP.rz) / dp; } else { BLIP.vx = 0; BLIP.vz = 0; } }   // 估走路速度，下一次更新前繼續往前走（推算），看起來不卡
   BLIP.rx = wx; BLIP.rz = wz; BLIP.lt = nowT; BLIP.tx = wx; BLIP.tz = wz; BLIP.tyaw = +b.yaw || 0; BLIP.mv = !!b.mv; BLIP.obj.visible = true;
   if (!BLIP.init) { BLIP.x = wx; BLIP.z = wz; BLIP.yaw = BLIP.tyaw; BLIP.init = true; }
-  const say = String(b.say || '');
+  BLIP.srv = String(b.say || ''); blipBub();   // [P103] Unity 有說話就用 Unity 的；沒有就用靠近時的本地線索台詞
+}
+function blipBub() {
+  if (!BLIP) return; const say = BLIP.srv || BLIP.loc || '';
   if (say !== BLIP.say) {   // 說話泡泡：奶油底（Unity WorldTags Blip bubble），高 2.5 m
     BLIP.say = say; const u = BLIP.obj.userData;
     if (u.bub) { BLIP.obj.remove(u.bub); u.bub.material.map.dispose(); u.bub.material.dispose(); u.bub = null; }
