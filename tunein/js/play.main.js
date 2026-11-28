@@ -1183,7 +1183,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function closeCollect() { const o = $('#lsOv'), f = $('#lsFr'); if (o) o.hidden = true; if (f) f.src = 'about:blank'; try { trayRender(); } catch (e) {} }
   /* ---- 種子選擇列：在 Unity 畫面上選種子 → 種在 Ping 站的地方（或給想聽的居民） ---- */
   var SKEY = ['bird', 'chime', 'clock', 'chick', 'rain', 'drop', 'frog', 'cricket', 'fire', 'owl', 'sea', 'wind', 'bell', 'down1', 'down2', 'down3', 'odd1', 'odd2', 'down4', 'down5', 'odd3', 'odd4', 'odd5'];
-  var SNAME = { bird: '鳥叫', chime: '風鈴', clock: '時鐘', chick: '小雞', rain: '雨', drop: '水滴', frog: '青蛙', cricket: '蟲鳴', fire: '火堆', owl: '貓頭鷹', sea: '海浪', wind: '風', bell: '鐘聲', down1: '降頻啾聲', down2: '低低震動', down3: '拉長和音', odd1: '咕嚕嚕', odd2: '沙沙掃過', down4: '慢慢鯨歌', down5: '放慢雨滴', odd3: '冒泡泡', odd4: '玻璃呼吸', odd5: '爬樓梯' };
+  var SNAME = { bird: '樹梢的鳥', chime: '花瓣共鳴', clock: '蘑菇小電報', chick: '小雞', rain: '雨', drop: '波波聲', frog: '水草呼吸', cricket: '蟲鳴', fire: '土裡悄悄話', owl: '大樹伸懶腰', sea: '海浪', wind: '風', bell: '雲朵的重量', down1: '降頻啾聲', down2: '低低震動', down3: '拉長和音', odd1: '咕嚕嚕', odd2: '沙沙掃過', down4: '慢慢鯨歌', down5: '放慢雨滴', odd3: '冒泡泡', odd4: '玻璃呼吸', odd5: '爬樓梯' };
   const TR = { sel: -1, h: '', open: false };
   function seedsGet() { try { return JSON.parse(localStorage.getItem('tunein.seeds') || '[]'); } catch (e) { return []; } }
   function seedsSet(a) { try { localStorage.setItem('tunein.seeds', JSON.stringify(a)); } catch (e) {} }
@@ -1295,7 +1295,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (now - NET.lastPoll < 500 || NET.busy) return; NET.lastPoll = now; NET.busy = true;
     const ac = new AbortController(), to = setTimeout(() => ac.abort(), 3000);
     try {
-      const tq = Date.now(), s2 = await (await fetch(NET.api + '/state?lite=1', { cache: 'no-store', signal: ac.signal })).json(); if (!s2) return; try { gardenSync(s2.garden); } catch (e) {} try { ensSync(s2.garden); } catch (e) {} try { weatherSync(s2.weather); } catch (e) {} try { if (s2.residents) resSync(s2.residents); } catch (e) {}
+      const tq = Date.now(), s2 = await (await fetch(NET.api + '/state?lite=1', { cache: 'no-store', signal: ac.signal })).json(); if (!s2) return; try { gardenSync(s2.garden); } catch (e) {} try { window.__env = (s2.weather && s2.weather.env) || null; window.__fin = !!s2.finale; } catch (e) {} try { ensSync(s2.garden); } catch (e) {} try { weatherSync(s2.weather); } catch (e) {} try { if (s2.residents) resSync(s2.residents); } catch (e) {}
       if (s2.active && s2.roundEnd && s2.now && S.started && !S.ended) {   // 每次輪詢都對一次伺服器的剩餘時間：後來加入的人、手機時鐘不準，倒數都會一致
         const left = s2.roundEnd - s2.now - (Date.now() - tq) / 2, mine = S.roundEnd - Date.now();
         if (left > 0 && left <= ROUND_MS + 2000 && Math.abs(mine - left) > 1500) { S.roundEnd = Date.now() + left; try { tickRound(); } catch (e) {} }
@@ -1448,9 +1448,29 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       const a = e.animate([{ transform: 'translate(0,0) scale(1.6)', opacity: 1 }, { transform: 'translate(' + dx * .5 + 'px,' + (dy * .5 - 60) + 'px) scale(1.1)', opacity: 1, offset: .5 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.5)', opacity: .2 }], { duration: 900, easing: 'ease-in-out' });
       a.onfinish = () => { e.remove(); if (tb) tb.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 300 }); }; } catch (x) {}
   }
+
+  /* [P96] 調準瞬間的辨識起手式 Cue（0.5–1.2 秒，C 大調五聲音階，短促 Q 彈、低殘響）；音高依微氣候係數 ×0.85–1.15 */
+  function swp(f0, f1, type, vol, dur, delay) {
+    if (!AC) return; const t = AC.currentTime + (delay || 0), o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur * .8);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(g); g.connect(sfxOut()); o.start(t); o.stop(t + dur + .05);
+  }
+  const C5 = 523.25, D5 = 587.33, E5 = 659.25, G5 = 783.99, A5 = 880, C6 = 1046.5, E6 = 1318.5, G6 = 1568;
+  const CUE = {
+    bird: r => { [A5, G5, C6].forEach((f, i) => swp(f * r * .95, f * r * 1.08, 'sine', .11, .12, i * .15)); },
+    drop: r => { swp(300 * r, 900 * r, 'sine', .16, .22, 0); swp(420 * r, 1100 * r, 'sine', .08, .2, .06); },
+    clock: r => { tone(E5 * r, 'triangle', .1, .08, 0); tone(E5 * r, 'triangle', .1, .08, .14); tone(G5 * r, 'triangle', .12, .32, .3); },
+    fire: r => { tone(C5 * r * .5, 'sine', .08, .06, 0); tone(262 * r * .5, 'triangle', .16, .3, .16); },
+    owl: r => { swp(131 * r, 165 * r, 'triangle', .2, .9, 0); tone(262 * r, 'sine', .05, .7, .05); },
+    frog: r => { [0, .16, .32].forEach((d, i) => swp((1100 + i * 220) * r, (1500 + i * 260) * r, 'sine', .08, .14, d)); },
+    chime: r => { tone(E5 * r, 'sine', .1, .8, 0); tone(G5 * r, 'sine', .1, .8, 0); tone(E5 * r * 2, 'sine', .03, .5, 0); },
+    bell: r => { [C6, E6, G6, E6, C6].forEach((f, i) => tone(f * r, 'sine', .07, .32, i * .13)); }
+  };
+  function cuePlay(k) {
+    try { ensureAudio(); const e = window.__env, r = e ? .85 + .3 * ((e.at || .5) * .6 + (e.sw || .5) * .4) : 1; (CUE[k] || CUE.bird)(r); } catch (e) {}
+  }
   function tnDone() {
     const sp = TN.sp; const sd = seedsGet(); sd.push({ k: sp.k, l: 'f' }); seedsSet(sd); toTown({ tunein: 'spotTake', id: sp.id }); tnClose();
-    seedFly(); toast('收下了：' + sp.name + '，變成種子了', 'ok', 3000); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
+    cuePlay(sp.k); seedFly(); toast('收下了：' + sp.name + (sp.egg ? '　' + (sp.npc ? sp.npc + '：' : '') + sp.egg : '，變成種子了'), 'ok', sp.egg ? 6200 : 3000); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
     try { trayRender(); } catch (e) {}
   }
   function detSet(on) {
@@ -1570,13 +1590,13 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (!ENS.tier || !ENS.on || document.hidden) return; let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
     if (AC.state === 'suspended') { try { AC.resume(); } catch (x) {} return; }
     if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55; ENS.out.connect(AC.destination); }
-    const wall = Date.now(), acNow = AC.currentTime, STEP = 250;   // 一格 = 250 ms（一個 16 分音符）；4 秒 = 16 格
+    const wall = Date.now(), acNow = AC.currentTime, STEP = 60000 / 104 / 2;   // [P96] 104 BPM 的八分音符；兩小節 16 格；C 大調五聲
     let k = Math.max(ENS.nextK, Math.ceil(wall / STEP));
     for (; k * STEP < wall + 450; k++) {
       const t = acNow + (k * STEP - wall) / 1000; if (t < acNow) continue; const bar = k % 16;
-      if (ENS.tier >= 1) { if (bar % 4 === 0) ensKick(t); if (bar % 2 === 1) ensHat(t); }
-      if (ENS.tier >= 2 && bar % 4 === 0) { const f = [65.41, 65.41, 98, 87.31][bar / 4]; ensNote(t, f, .9, .16, 'triangle'); }
-      if (ENS.tier >= 3 && bar === 0) { [261.63, 329.63, 392].forEach(f => ensNote(t, f, 3.6, .05, 'sine')); }
+      if (ENS.tier >= 1 && bar % 2 === 0) ensNote(t, bar % 8 === 0 ? 1180 : 940, .07, .06, 'triangle');   // 小木魚點拍
+      if (ENS.tier >= 2 && [0, 3, 8, 11].includes(bar)) ensNote(t, [130.81, 98, 110, 98][[0, 3, 8, 11].indexOf(bar)], .32, .17, 'triangle');   // Q 彈木頭低音
+      if (ENS.tier >= 3) { if (bar === 0) { ensNote(t, 659.25, 1.1, .05, 'sine'); ensNote(t, 783.99, 1.1, .05, 'sine'); } if (bar === 10) ensNote(t, 1046.5, .3, .05, 'sine'); if (bar === 12) ensNote(t, 880, .3, .05, 'sine'); if (bar === 14) ensNote(t, 783.99, .4, .05, 'sine'); }   // 顫音琴雙音＋八音盒短句
     }
     ENS.nextK = k;
   }
