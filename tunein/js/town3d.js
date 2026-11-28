@@ -60,9 +60,9 @@ vec3 uNeutral(vec3 c){
 }
 vec3 uGrade(vec3 c){
   { float l0 = uLum(c); c = mix(vec3(l0), c, 1. + uWxSat); c *= 1. + uWxTint; c = mix(c, vec3(.8,.84,.85), uWxLift) * (1. - uWxDim*.5); }   // [W03] 天氣：飽和／色偏／霧白／變暗（預設 0＝不變）
-  c = max(c, vec3(0.)) * exp2(.05) * vec3(1.03, 1., .965);
-  c = .18 * pow(max(c, vec3(1e-4))/.18, vec3(1.18));
-  float l = uLum(c); c = max(vec3(l) + (c - vec3(l))*1.14, vec3(0.));
+  c = max(c, vec3(0.)) * exp2(-.18) * vec3(1.0, 1., 1.0);
+  c = .18 * pow(max(c, vec3(1e-4))/.18, vec3(1.26));
+  float l = uLum(c); c = max(vec3(l) + (c - vec3(l))*1.16, vec3(0.));
   c = clamp(uNeutral(c), 0., 1.);
   vec3 g = pow(c, vec3(1./2.2)); float t = clamp(uLum(g), 0., 1.);
   g = uSoftLight(g, mix(vec3(.5), vec3(.3098,.5608,.6510), 1.-t));
