@@ -1401,28 +1401,29 @@ function applyState(j) {
 
 /* ═════════ [T18] 對話（Unity Detector 的 ModernDialogue／GrandmaLines）：鏡頭切到兩人側面，點一下換下一句 ═════════ */
 const SNDN = { bird: '鳥叫', chime: '風鈴', clock: '時鐘', chick: '小雞', rain: '雨聲', drop: '水滴', frog: '青蛙', cricket: '蟲鳴', fire: '火堆', owl: '貓頭鷹', sea: '海浪', wind: '風聲', bell: '鐘聲' };
-const SPK = { 老闆: '花店老闆', 奶奶: '奶奶' };
+const SPK = { 老闆: '花店老闆', 奶奶: '老鼠奶奶' };
 function talkLines(id) {
   const r = RES && RES.find(x => x.id === id);
   const w = r && r.want && r.want.length >= 2 ? r.want.map(k => SNDN[k] || k) : null, got = r && r.got ? r.got.length : 0, met = r && r.met;
   const left = () => '「' + (r.got.indexOf(r.want[0]) >= 0 ? w[1] : w[0]) + '」';
   if (id === 'house') {   /* 奶奶：慢慢說、愛織毛線、想念孫子 */
-    if (!w) return ['奶奶：嗯？有客人呀。', '奶奶：來，慢慢坐。這裡好久沒有聲音了。', '奶奶：你去花那邊找找，說不定有。'];
+    if (!w) return ['奶奶：我們老鼠的耳朵呀，從小就能聽見草地和泥土裡的悄悄話呢。', '奶奶：來，慢慢坐，小鎮今天靜悄悄的。', '奶奶：打開探測器，一起幫它找點聲音吧。'];
     if (r.done) return ['奶奶：' + w[0] + '，還有' + w[1] + '。', '奶奶：家裡又熱熱鬧鬧的了，真好。', '奶奶：謝謝你呀，孩子。'];
     if (got === 1) return ['奶奶：呀，這個聲音，我聽過的。', '奶奶：一聽，手上的毛線都暖了。', '奶奶：還差' + left() + '，你再幫我找找。'];
-    if (!met) return ['奶奶：孫子們好久沒回來了。', '奶奶：以前家裡熱熱鬧鬧的，我一邊織毛線一邊聽。', '奶奶：我好想再聽到「' + w[0] + '」和「' + w[1] + '」。', '奶奶：找到了，收起來，種在我旁邊就好。'];
+    if (!met) return ['奶奶：我們老鼠的耳朵呀，從小就能聽見草地和泥土裡的悄悄話呢。', '奶奶：小鎮現在靜悄悄的，我好想聽到熱鬧的聲音。', '奶奶：我好想再聽到「' + w[0] + '」和「' + w[1] + '」。', '奶奶：找到了，收起來，種在我旁邊就好。'];
     return ['奶奶：回來啦。', '奶奶：我還在等「' + w[0] + '」和「' + w[1] + '」。', '奶奶：不急，慢慢找。'];
   }
   /* 花店老闆：熱心、手忙腳亂、花會跟著聲音開 */
-  if (!w) return ['老闆：哎呀，有客人！', '老闆：小鎮今天好安靜，花都睡著了。', '老闆：聽說你的探測器找得到會唱歌的花，幫我看看好嗎？'];
+  if (!w) return ['老闆：歡迎來到小鎮！每一個調清楚的聲音，都能在這裡種成一朵花喔。', '老闆：小鎮今天靜悄悄的，花都睡著了。', '老闆：打開探測器，幫我們一起找點聲音吧。'];
   if (r.done) return ['老闆：聽到了！' + w[0] + '，還有' + w[1] + '。', '老闆：你看，花一朵一朵開了。', '老闆：謝謝你，Ping。'];
   if (got === 1) return ['老闆：咦，這個聲音我認得！', '老闆：花都抖了一下，快醒了。', '老闆：還差' + left() + '，應該就在附近。'];
-  if (!met) return ['老闆：哎呀，有客人！', '老闆：以前屋外滴滴答答的，花一聽到就醒了。', '老闆：現在太安靜，它們都不肯開。', '老闆：我好想再聽到「' + w[0] + '」和「' + w[1] + '」。', '老闆：靠近花，站著不動，聽清楚再收。'];
+  if (!met) return ['老闆：歡迎來到小鎮！每一個調清楚的聲音，都能在這裡種成一朵花喔。', '老闆：小鎮現在靜悄悄的，花都在等聲音。', '老闆：我好想再聽到「' + w[0] + '」和「' + w[1] + '」。', '老闆：靠近花，站著不動，聽清楚再收。'];
   return ['老闆：回來啦！', '老闆：我還在等「' + w[0] + '」和「' + w[1] + '」。', '老闆：慢慢來，花都在等。'];
 }
-function hintLines(id) {   /* 這位居民知道哪些「害羞的聲音」：聊完就能在探測器找到（sound_spots.json 的 gate） */
-  const L = (SPOT.cfg && SPOT.cfg.spots || []).filter(x => x.gate === id), nm = id === 'house' ? '奶奶' : '老闆'; if (!L.length) return [];
-  return [nm + '：對了，有幾個聲音很害羞，躲著不出來。', nm + '：' + L.map(x => x.clue).join('；') + '。', nm + '：打開探測器，說不定就聽到了。'];
+function hintLines(id) {   /* [P98] 這位居民的聲音線索：sound_spots.json 每點的 npc／clue（老鼠奶奶＝小草、蘑菇、土裡；花店老闆＝大樹、花瓣、雲朵） */
+  const who = id === 'house' ? '老鼠奶奶' : id === 'flower' ? '花店老闆' : '', nm = id === 'house' ? '奶奶' : '老闆';
+  const L = (SPOT.cfg && SPOT.cfg.spots || []).filter(x => x.npc === who && x.clue); if (!L.length) return [];
+  return L.map(x => nm + '：' + x.clue).concat([nm + '：打開探測器，說不定就聽到了。']);
 }
 const TK = { on: false, id: '', lines: [], i: 0 };
 function talkShow() {
