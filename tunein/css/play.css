@@ -1628,3 +1628,22 @@ body.lock .guide button,body.lock #btnCards,body.lock #btnBack{pointer-events:no
 #cdots i.on{opacity:1}
 #cdots i.pop{animation:cdpop .45s cubic-bezier(.3,1.6,.5,1)}
 @keyframes cdpop{0%{transform:scale(.6)}60%{transform:scale(1.35)}100%{transform:scale(1)}}
+
+/* ═════ [P94] 小鎮畫面浮層重新排版：畫面留給小鎮，每個區域只放一件事 ═════ */
+/* 進度點：上排中央，小而細 */
+#cdots{top:auto;right:auto;transform:translate(-50%,-50%);gap:5px}
+#cdots i{width:11px;height:11px}
+/* 第二排：單一提示（方向／教學），窄版膠囊，寬度隨文字 */
+body.ufull .sdx-sh{width:auto !important;max-width:min(78%,300px);font-size:16px !important;padding:4px 14px 4px 5px !important;gap:8px !important;box-shadow:0 2px 0 rgba(62,42,90,.35) !important;border:2px solid #3E2A5A !important}
+body.ufull .sdx-sh .sdx-ar{width:34px;height:34px}
+body.ufull .sdx-sh .sdx-ar svg{width:22px;height:22px}
+body.ufull .sdx-sh i{font-size:13px;font-weight:700;font-style:normal;opacity:.8}
+body.ufull .sdx-sh b{white-space:nowrap}
+/* 說話提示出現時，方向提示讓位（一次只出現一個提示） */
+body.talkon .sdx-sh{opacity:0 !important;pointer-events:none}
+/* 聽法：右側直排，兩個字，不橫跨畫面 */
+body.ufull .bandrow{top:auto;left:auto;transform:none;flex-direction:column;gap:6px;padding:5px;border-radius:24px;background:rgba(255,252,235,.92);border:2px solid #3E2A5A;box-shadow:0 2px 0 rgba(62,42,90,.35)}
+body.ufull .bandrow button{width:44px;min-height:44px;padding:0;font-size:0;display:grid;place-items:center}
+body.ufull .bandrow button::before{content:attr(data-s);font:800 14px/1.1 var(--font-body);writing-mode:horizontal-tb;color:inherit;white-space:nowrap}
+/* 說話鈕：方向鍵上方、半透明底不遮人物 */
+body.ufull #t3talk{min-height:44px;padding:0 18px;font-size:15px;box-shadow:0 3px 0 #3E2A5A;border:2px solid #3E2A5A}

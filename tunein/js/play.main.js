@@ -1226,7 +1226,15 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     for (let i = 0; i < CD.n; i++) h += '<i class="' + (i < n ? 'on' : '') + '"' + (i < n ? ' style="background:' + hx + '"' : '') + '></i>';
     if (h !== CD.h) { CD.h = h; el.innerHTML = h; el.setAttribute('aria-label', '收集進度 ' + n + '／' + CD.n); if (n > CD.last) { const on = el.querySelector('i:nth-child(' + n + ')'); if (on) { on.classList.add('pop'); } } CD.last = n; }
   }
-  setInterval(() => { try { cdRender(); } catch (e) {} }, 500);
+  /* [P94] 小鎮畫面上的浮層統一排版：上排＝名字／進度點／倒數；第二排＝單一提示（方向或說話，互斥）；右側＝聽法直排；下方＝說話鈕（方向鍵上方） */
+  function placeHud() {
+    const f = $('#uFrame'); if (!f || f.hidden || !document.body.classList.contains('ufull')) return; const r = f.getBoundingClientRect(); if (r.width < 40) return;
+    const dots = document.getElementById('cdots'); if (dots) { dots.style.left = (r.left + r.width / 2) + 'px'; dots.style.top = (r.top + 34) + 'px'; dots.style.right = 'auto'; }
+    const br = document.getElementById('bandRow'); if (br) { br.style.left = 'auto'; br.style.right = Math.max(6, innerWidth - r.right + 10) + 'px'; br.style.top = (r.top + r.height * .34) + 'px'; }
+    document.body.classList.toggle('talkon', !!($('#t3talk') && !$('#t3talk').hidden));
+    try { placeTalk(); } catch (e) {}
+  }
+  setInterval(() => { try { cdRender(); placeHud(); } catch (e) {} }, 500);
   window.addEventListener('message', e => { if (e.data && e.data.tunein === 'close') closeCollect(); });
   function resSync(rs) { S.rs = rs; let ch = false; rs.forEach(r => { if (r.done && MAIN.includes(r.id) && !S.woke[r.id]) { S.woke[r.id] = '聽到了'; ch = true; } }); if (ch) { try { renderGuide(); renderMap(); } catch (e) {} } }
   const NET = { on: false, api: '', pid: '', lastPoll: 0, lastPost: 0, px: -99, py: -99, joined: false, others: {} };
@@ -1361,7 +1369,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   }
   function placeTop(el) {   // 提示條放在 3D 畫面上方（名字與倒數時間的下面），不壓到底部的說話按鈕
     const f = $('#uFrame'), r = f && !f.hidden ? f.getBoundingClientRect() : null;
-    if (r && r.width > 40) { el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = (r.top + (document.body.classList.contains('tut') ? 54 : document.body.classList.contains('deton') ? 120 : 54)) + 'px'; el.style.bottom = 'auto'; el.style.width = Math.min(r.width - 24, 330) + 'px'; }
+    if (r && r.width > 40) { el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = (r.top + 56) + 'px'; el.style.bottom = 'auto'; el.style.width = 'auto'; }   /* [P94] 提示統一放在上方同一個位置，寬度隨文字（原本 deton 時掉到畫面中間） */
     else { el.style.left = '50%'; el.style.top = '150px'; el.style.bottom = 'auto'; el.style.width = 'min(88vw,330px)'; }
   }
   let spotHintEl = null, hintTm = 0;
@@ -1482,7 +1490,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     const b = document.createElement('button'); b.id = 'btnDet'; b.type = 'button'; b.className = 'btn btn-block sdx-det'; b.textContent = '探測器　關'; b.setAttribute('aria-pressed', 'false'); b.hidden = true;
     bm.insertAdjacentElement('afterend', b); b.addEventListener('click', () => { if (S.tutDone && !DETS.on && DETS.cool > Date.now()) { toast('探測器充電中'); return; } sfx.tap(); detSet(!DETS.on); });
     if (!$('#bandRow')) { const row = document.createElement('div'); row.id = 'bandRow'; row.className = 'bandrow'; row.hidden = true; row.setAttribute('role', 'group'); row.setAttribute('aria-label', '聽法');
-      row.innerHTML = BANDS.map((n, i) => '<button type="button" data-b="' + i + '">' + n + '</button>').join(''); db.parentNode.insertBefore(row, db); row.addEventListener('click', e => { const x = e.target.closest('button[data-b]'); if (x) bandSet(+x.getAttribute('data-b')); }); }
+      row.innerHTML = BANDS.map((n, i) => '<button type="button" data-b="' + i + '" data-s="' + n.slice(0, 2) + '" aria-label="' + n + '">' + n + '</button>').join(''); db.parentNode.insertBefore(row, db); row.addEventListener('click', e => { const x = e.target.closest('button[data-b]'); if (x) bandSet(+x.getAttribute('data-b')); }); }
   }
   setInterval(() => {
     try { detInit(); const b = $('#btnDet'); if (!b) return; const show = U.m === 1 && S.started && !S.ended && $('#lsOv') && $('#lsOv').hidden && !!CODEX.cfg; if (b.hidden === show) b.hidden = !show; if (!show && DETS.on) detSet(false); detTick(); coachTick(show); gardenPill(); if (DETS.on && !TN.on && TNC.near && !(TNC.cool[TNC.near] > Date.now())) tnOpen(TNC.near); } catch (e) {}
@@ -1700,7 +1708,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (!b) { b = document.createElement('button'); b.id = 't3talk'; b.type = 'button'; b.className = 'btn btn-ink'; $('#mapWrap').appendChild(b); b.addEventListener('click', () => { const id = b.getAttribute('data-id'); try { ensureAudio(); sfx.tap(); } catch (x) {} if (id) { b.hidden = true; try { const fr = $('#uFrame'); fr.contentWindow.postMessage({ tunein: 'talk', id }, '*'); } catch (x) {} } }); }
     b.textContent = '和' + (d.name || '居民') + '說話'; b.setAttribute('data-id', d.id); b.hidden = false; placeTalk();
   });
-  function placeTalk() { const b = $('#t3talk'), f = $('#uFrame'); if (!b || !f || !document.body.classList.contains('ufull')) return; const r = f.getBoundingClientRect(); if (r.width < 40) return; b.style.left = (r.left + r.width / 2) + 'px'; b.style.top = (r.top + r.height * .6) + 'px'; b.style.bottom = 'auto'; const q = $('#uq'); if (q) { q.style.left = (r.left + r.width / 2) + 'px'; q.style.top = (r.top + r.height * .5) + 'px'; } }   /* 說話鈕固定在方向鍵正上方（原本會被方向鍵蓋住、誤觸） */   /* 說話鈕放在方向鍵上方，不壓到方向鍵 */
+  function placeTalk() { const b = $('#t3talk'), f = $('#uFrame'); if (!b || !f || !document.body.classList.contains('ufull')) return; const r = f.getBoundingClientRect(); if (r.width < 40) return; b.style.left = (r.left + r.width / 2) + 'px'; b.style.top = (r.bottom - 142) + 'px'; b.style.bottom = 'auto'; const q = $('#uq'); if (q) { q.style.left = (r.left + r.width / 2) + 'px'; q.style.top = (r.bottom - 142) + 'px'; } }   /* [P94] 說話鈕放方向鍵正上方、不蓋 Ping */   /* 說話鈕固定在方向鍵正上方（原本會被方向鍵蓋住、誤觸） */   /* 說話鈕放在方向鍵上方，不壓到方向鍵 */
   window.addEventListener('resize', placeTalk);
   function ctlStop() { Object.keys(CTL.held).forEach(k => { if (CTL.held[k]) ctlHold(k, false); }); }
   document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('#dpad .dk'); if (!b) return; e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} ctlHold(b.getAttribute('data-k'), true); });
