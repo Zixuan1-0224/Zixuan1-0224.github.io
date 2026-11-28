@@ -1639,7 +1639,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       this.k = Math.pow(2, (at - .55) * 2 / 12);
       const dull = Math.max(pm, cl * .5); if (ENS.lp) ENS.lp.frequency.setTargetAtTime(Math.max(2200, (13000 - 10500 * dull) * (.85 + .3 * uv)), t, .5);
       this.wet.gain.setTargetAtTime(Math.max(.12, (rh - .35) * 1.1) * (1 - .4 * pf), t, .6);
-      const wv = Math.max(0, (wd - .15) * .09) * (1 - .8 * pf); this.wg.gain.setTargetAtTime(wv, t, .5); this.lg.gain.setTargetAtTime(wv * .7, t, .5); this.bp.frequency.setTargetAtTime(380 + 600 * wd, t, .5);
+      const wv = Math.max(0, (wd - .15) * .2) * (1 - .8 * pf); this.wg.gain.setTargetAtTime(wv, t, .5); this.lg.gain.setTargetAtTime(wv * .7, t, .5); this.bp.frequency.setTargetAtTime(380 + 600 * wd, t, .5);
     },
     say() { const e = this.env(); if ((e.qk || 0) > .02) return '地底有一聲咚'; if ((e.pm || 0) > .6) return '空氣悶，聲音也悶'; if ((e.wd || 0) > .5) return '風大，多了風聲'; if ((e.rh || 0) > .8) return '空氣潮，回音多'; if ((e.at || .55) < .3) return '天冷，聲音偏低'; if ((e.at || .55) > .8) return '天熱，聲音偏高'; if ((e.pm || 0) < .15) return '空氣乾淨，聲音亮'; return ''; }
   };
