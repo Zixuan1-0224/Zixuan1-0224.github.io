@@ -615,12 +615,29 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* [P101] 聲音圖鑑（取代舊的「叫醒居民」任務單）：8 個聲音點，找到的顯示彩蛋，沒找到的顯示 NPC 線索＝玩家永遠知道下一步 */
   function bookGet() { try { return JSON.parse(localStorage.getItem('tunein.book') || '{}'); } catch (e) { return {}; } }
   function bookAdd(id) { try { const b = bookGet(); b[id] = 1; localStorage.setItem('tunein.book', JSON.stringify(b)); } catch (e) {} }
+  const BKI = {   /* [P124] 圖鑑小圖示（每個聲音一個簡單的線條圖，24×24） */
+    bird: '<path d="M5 14c0-4 3-7 7-7 3 0 5 2 6 4l3 1-3 1c-1 3-4 5-7 5-3 0-6-1-6-4z"/><circle cx="14" cy="11" r=".8"/>',
+    drop: '<path d="M12 4c3 4 5 6.5 5 9a5 5 0 0 1-10 0c0-2.5 2-5 5-9z"/>',
+    clock: '<path d="M4 12a8 7 0 0 1 16 0z"/><path d="M10 12v6h4v-6"/>',
+    fire: '<path d="M3 18h18M6 18c0-4 3-6 6-6s6 2 6 6"/><circle cx="12" cy="8" r="1.4"/>',
+    owl: '<circle cx="12" cy="9" r="5"/><path d="M12 14v6M9 20h6"/>',
+    frog: '<circle cx="9" cy="15" r="3"/><circle cx="15" cy="9" r="2"/><circle cx="16.5" cy="17" r="1.5"/>',
+    chime: '<circle cx="12" cy="12" r="2"/><circle cx="12" cy="6.5" r="2.6"/><circle cx="12" cy="17.5" r="2.6"/><circle cx="6.5" cy="12" r="2.6"/><circle cx="17.5" cy="12" r="2.6"/>',
+    bell: '<path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.5-1A4.5 4.5 0 0 1 17 18z"/>',
+    cricket: '<path d="M5 15c4-8 10-8 14 0M8 18l-2 2M16 18l2 2"/>',
+    chick: '<path d="M12 4c4 0 6 6 6 10a6 6 0 0 1-12 0c0-4 2-10 6-10z"/><path d="M8 14l2-2 2 2 2-2 2 2"/>',
+    wind: '<path d="M4 9h10a2.5 2.5 0 1 0-2.5-2.5M4 14h14a2.5 2.5 0 1 1-2.5 2.5M4 19h6"/>',
+    down4: '<path d="M3 14c3-6 11-6 14 0l4-3v6l-4-1c-3 6-11 5-14-2z"/>',
+    odd4: '<circle cx="12" cy="13" r="6"/><path d="M9 11a3.5 3.5 0 0 1 3-2"/>'
+  };
   function openQuests() {
-    const L = (CODEX.cfg && CODEX.cfg.spots) || [], b = bookGet(), n = L.filter(x => b[x.id]).length;
-    const li = L.map(x => b[x.id]
-      ? '<li class="qn"><span class="qt"><b>✓ ' + x.name + '</b><em>' + (x.npc ? x.npc + '：' : '') + x.egg + '</em></span></li>'
-      : '<li class="qn"><span class="qt"><b>？ 還沒找到</b><em>' + (x.npc ? x.npc + '：' : '') + x.clue + '</em></span></li>').join('');
-    openSheet('<div class="sh-h"><span></span><div><h2>聲音圖鑑　' + n + '／' + L.length + '</h2></div>' + CLOSE + '</div><p class="murmur">打開探測器，跟著箭頭找；找不到就去問問居民。</p><ul class="qlist">' + li + '</ul>');
+    const L = ((CODEX.cfg && CODEX.cfg.spots) || []), b = bookGet(), n = L.filter(x => b[x.id]).length, PC = ['#F3AAB1', '#F6CDC9', '#B9CAE8'];
+    let sel = L.findIndex(x => !b[x.id]); if (sel < 0) sel = 0;
+    const tiles = L.map((x, i) => { const on = !!b[x.id], ic = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (on ? (BKI[x.k] || BKI.bird) : '<path d="M9.5 9a2.6 2.6 0 1 1 3.6 2.4c-.8.4-1.1 1-1.1 1.8M12 17h.01"/>') + '</svg>';
+      return '<button type="button" class="bk-t' + (on ? ' on' : '') + (i === sel ? ' sel' : '') + '" data-i="' + i + '" style="--c:' + PC[i % 3] + '" aria-label="' + (on ? x.name : '還沒找到') + '"><i>' + ic + '</i><b>' + (on ? x.name.replace(/的/g, '').slice(0, 5) : '？？？') + '</b></button>'; }).join('');
+    openSheet('<div class="sh-h"><span></span><div><h2>聲音圖鑑</h2></div>' + CLOSE + '</div><div class="bk-p"><div class="bk-bar"><i style="width:' + Math.round(n / Math.max(1, L.length) * 100) + '%"></i></div><b>' + n + '／' + L.length + '</b></div><div class="bk-g">' + tiles + '</div><div class="bk-d" id="bkDet" aria-live="polite"></div>');
+    const det = () => { const x = L[sel]; if (!x) return; const on = !!b[x.id]; $('#bkDet').innerHTML = '<b>' + (on ? x.name : '還沒找到') + '</b><span>' + (x.npc ? '<em>' + x.npc + '</em>' : '') + (on ? x.egg : x.clue) + '</span>'; $$('#sheetBody .bk-t').forEach((e, i) => e.classList.toggle('sel', i === sel)); };
+    $$('#sheetBody .bk-t').forEach(e => e.addEventListener('click', () => { sel = +e.getAttribute('data-i'); det(); try { sfx.tap(); } catch (x) {} })); det();
   }
   function openQuestsOld() {   // 舊的任務單（已停用）：頂端一句「下一步」，下面每位居民一行（在哪、想聽什麼、醒了沒），最後是我的種子
     const rs = S.rs || [], sd = seedsGet();
@@ -1348,7 +1365,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=133&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=134&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1943,7 +1960,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function splTick(i) {
     try {
       splEls(); const f = $('#uFrame'), fr = f && !f.hidden ? f.getBoundingClientRect() : null; let box = null, dim = false;
-      if (i === 1 && fr && fr.width > 40) { box = { l: fr.left + 6, t: fr.bottom - 120, w: fr.width - 12, h: 112 }; dim = !(TUTO.mvT > 0 || S.tutMv); }   /* 走走看：方向鍵區；一開始走動就放亮 */
+      if (i === 1) { box = null; dim = false; }   /* [P124] 走走看：不再圈方向鍵區（長方形很怪），改成方向鍵輕輕呼吸 */   /* 走走看：方向鍵區；一開始走動就放亮 */
       else if (i === 2) { const b = $('#btnDet'); if (b && !b.hidden) { const r = b.getBoundingClientRect(); if (r.width > 20) { box = { l: r.left, t: r.top, w: r.width, h: r.height }; dim = true; } } }
       else if (i === 5) { const b = document.querySelector('.sdx-go.big'); if (b) { const r = b.getBoundingClientRect(); if (r.width > 20) box = { l: r.left, t: r.top, w: r.width, h: r.height }; } }   /* 種花：只圈出按鈕，不壓暗（還要走路） */
       document.body.classList.toggle('lock', i >= 1 && i <= 5);   /* Guided Action：上方卡片按鈕先鎖住 */

@@ -1713,3 +1713,19 @@ body.tut .guide,body.tut #trayTg{display:none !important}
 /* 一次只留一個：對話卡／彈窗開著時，教學提示、圈圈、方向牌都先退場 */
 body:has(#sheet:not([hidden])) .sdx-co,body:has(#sheet:not([hidden])) .sdx-bd,body:has(#sheet:not([hidden])) #sp92r,body:has(#sheet:not([hidden])) #sp92,body:has(.sdx-tm:not([hidden])) .sdx-co,body:has(.sdx-tm:not([hidden])) .sdx-bd{display:none !important}
 @media (prefers-reduced-motion:reduce){.sdx-cd i{transition:none}}
+
+/* ═════ [P124] 圖鑑圖像化（3 欄圖示牆＋點一下看一句）／教學暗幕不偏藍／方向鍵呼吸 ═════ */
+.bk-p{display:flex;align-items:center;gap:12px;margin:4px 2px 14px}.bk-p b{font-size:18px;color:#3E2A5A;white-space:nowrap}
+.bk-bar{flex:1;height:10px;border-radius:99px;background:rgba(185,202,232,.45);overflow:hidden}.bk-bar i{display:block;height:100%;border-radius:99px;background:#F3AAB1;transition:width .4s ease}
+.bk-g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.bk-t{display:grid;justify-items:center;gap:6px;padding:12px 6px 10px;border:0;border-radius:20px;background:rgba(185,202,232,.22);color:#3E2A5A;font:inherit;cursor:pointer;min-height:96px;-webkit-tap-highlight-color:transparent}
+.bk-t i{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:rgba(62,42,90,.07);color:rgba(62,42,90,.4)}
+.bk-t.on i{background:var(--c);color:#3E2A5A}
+.bk-t b{font-size:14px;font-weight:700;line-height:1.2;text-align:center;opacity:.5}.bk-t.on b{opacity:1}
+.bk-t.sel{background:#fff;box-shadow:0 2px 12px rgba(62,42,90,.16)}
+.bk-d{margin:14px 0 6px;padding:14px 16px;border-radius:20px;background:#FFF9F3;color:#3E2A5A;display:grid;gap:4px;min-height:72px}
+.bk-d b{font-size:17px}.bk-d span{font-size:15px;line-height:1.5}.bk-d em{font-style:normal;font-weight:700;margin-right:6px;color:#C96F7C}
+#sp92{background:rgba(70,48,62,.5) !important}
+@keyframes p124pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+body[data-tut="1"] #mapWrap .dgrp .dk,body[data-tut="1"] .dpad .dk{animation:p124pulse 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){body[data-tut="1"] #mapWrap .dgrp .dk,body[data-tut="1"] .dpad .dk{animation:none}.bk-bar i{transition:none}}
