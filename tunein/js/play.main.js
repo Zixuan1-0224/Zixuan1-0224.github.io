@@ -1017,7 +1017,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     WXK = wk; WXO = w; const el = $('#wx'); if (el) { el.textContent = WX_ICON[w.kind]; el.hidden = false; el.setAttribute('aria-label', '天氣：' + (w.label || '')); }
     toTown({ tunein: 'weather', kind: w.kind, lv: w.lv });
     let seen = ''; try { seen = sessionStorage.getItem('tunein.wx') || ''; } catch (e) {}
-    if (S.started && !S.ended && seen !== w.kind) { try { sessionStorage.setItem('tunein.wx', w.kind); } catch (e) {} toast('Blip：' + WX_SAY[w.kind], 'info'); }
+    if (S.started && !S.ended && seen !== w.kind) { try { sessionStorage.setItem('tunein.wx', w.kind); } catch (e) {} toast('Blip：' + WX_SAY[w.kind] + (WXA.say() ? '　' + WXA.say() : ''), 'info'); }
   }
   function gardenSync(g) {   // 每次輪詢 /state 都呼叫：熱鬧度等級變高時提醒一次
     if (g) { GP = g; gardenPill(); }
@@ -1348,7 +1348,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=129&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=131&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1601,7 +1601,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     const d = e.data; if (!d || d.tunein !== 'snd') return;
     let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
     try { if (AC.state === 'suspended') AC.resume(); SYN.bind(AC); } catch (x) {}
-    if (!TSND.out) { TSND.out = AC.createGain(); TSND.out.gain.value = 1.15; try { const cp = AC.createDynamicsCompressor(); cp.threshold.value = -10; cp.knee.value = 10; cp.ratio.value = 5; cp.attack.value = .004; cp.release.value = .2; TSND.out.connect(cp); cp.connect(AC.destination); } catch (e) { TSND.out.connect(AC.destination); } }   /* [P110] 收集用的聲音再大聲一點，加壓縮器防破音 */
+    if (!TSND.out) { TSND.out = AC.createGain(); TSND.out.gain.value = 1.15; try { const cp = AC.createDynamicsCompressor(); cp.threshold.value = -10; cp.knee.value = 10; cp.ratio.value = 5; cp.attack.value = .004; cp.release.value = .2; TSND.out.connect(cp); cp.connect(AC.destination); } catch (e) { TSND.out.connect(AC.destination); } try { WXA.tap(TSND.out, true); } catch (e) {} }   /* [P110] 收集用的聲音再大聲一點，加壓縮器防破音 */
     if (d.list) {
       const seen = {};
       d.list.forEach(it => { seen[it.id] = 1; let s = TSND.sl[it.id]; if (!s) { const g = AC.createGain(); g.gain.value = 0; g.connect(TSND.out); let dst = g, f = null, pn = null; if (it.pan !== undefined && AC.createStereoPanner) { pn = AC.createStereoPanner(); pn.connect(g); dst = pn; } if (it.lp) { f = AC.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = .7; f.frequency.value = it.lp; f.connect(dst); dst = f; } s = TSND.sl[it.id] = { g, f, pn, slot: {} }; try { SYN.loop(it.k, dst, s.slot); } catch (x) {} } const tune = TN.on && it.id === 'sp_' + TN.id; if (s.pn && it.pan !== undefined) s.pn.pan.setTargetAtTime(it.pan, AC.currentTime, .1); if (s.f && it.lp) s.f.frequency.setTargetAtTime(tune ? tnLp(TN.c) : it.lp, AC.currentTime, .25); s.tg = tune ? tnGain(TN.c) : it.g; s.sp = it.id.indexOf('sp_') === 0; focusTick(); });
@@ -1619,6 +1619,31 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* ═════════ [P89] 小鎮合奏：種下的聲音種類（伺服器 garden.kinds）越多，伴奏一層層加進來 ≥2 種＝節拍、≥4 種＝低音、≥6 種＝和弦；
      手機和 Unity 都以「牆鐘每 4 秒」為一格（Date.now()%4000），所以不同裝置的節拍會對在一起（誤差＝裝置時鐘差，通常 <50ms）。
      全用 Web Audio 合成，音量很小（不蓋過花的聲音）；只在小鎮畫面且已按「開始」時播放 ═════════ */
+  /* [P117] 真實資料 → 聲音：全部用 window.__env（0–1）＋__envRaw。溫度→音高±1 半音；濕度→回音；風→風聲底；PM2.5／雲量→悶；紫外線→亮；地震→低咚（P100）。收集的聲音（TSND）也走回音，並依 PFX 對焦時降低天氣層 */
+  const WXA = {
+    k: 1, rv: null, wet: null, wg: null, lg: null, bp: null,
+    env() { return window.__env || {}; },
+    pf() { return (typeof PFX !== 'undefined' && PFX.v) || 0; },
+    init() {
+      if (this.rv || !AC) return; const sr = AC.sampleRate, n = Math.floor(sr * 1.7), ib = AC.createBuffer(2, n, sr);
+      for (let c = 0; c < 2; c++) { const d = ib.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6); }
+      this.rv = AC.createConvolver(); this.rv.buffer = ib; this.wet = AC.createGain(); this.wet.gain.value = 0; this.rv.connect(this.wet); this.wet.connect(AC.destination);
+      const nb = AC.createBuffer(1, sr * 2, sr), ch = nb.getChannelData(0); let b = 0; for (let i = 0; i < ch.length; i++) { b = b * .96 + (Math.random() * 2 - 1) * .1; ch[i] = b * 3; }
+      const src = AC.createBufferSource(); src.buffer = nb; src.loop = true; this.bp = AC.createBiquadFilter(); this.bp.type = 'bandpass'; this.bp.frequency.value = 520; this.bp.Q.value = .6;
+      this.wg = AC.createGain(); this.wg.gain.value = 0; this.lg = AC.createGain(); this.lg.gain.value = 0; const lfo = AC.createOscillator(); lfo.frequency.value = .13; lfo.connect(this.lg); this.lg.connect(this.wg.gain);
+      src.connect(this.bp); this.bp.connect(this.wg); this.wg.connect(AC.destination); src.start(); lfo.start();
+    },
+    tap(node, spot) { if (!AC) return; this.init(); const s = AC.createGain(); s.gain.value = spot ? .5 : 1; node.connect(s); s.connect(this.rv); },
+    tick() {
+      if (!AC) return; this.init(); const e = this.env(), t = AC.currentTime, rh = e.rh != null ? e.rh : .55, at = e.at != null ? e.at : .55, uv = e.uv != null ? e.uv : .5, wd = e.wd != null ? e.wd : .3, pm = e.pm || 0, cl = e.cl || 0, pf = this.pf();
+      this.k = Math.pow(2, (at - .55) * 2 / 12);
+      const dull = Math.max(pm, cl * .5); if (ENS.lp) ENS.lp.frequency.setTargetAtTime(Math.max(2200, (13000 - 10500 * dull) * (.85 + .3 * uv)), t, .5);
+      this.wet.gain.setTargetAtTime(Math.max(.12, (rh - .35) * 1.1) * (1 - .4 * pf), t, .6);
+      const wv = Math.max(0, (wd - .15) * .09) * (1 - .8 * pf); this.wg.gain.setTargetAtTime(wv, t, .5); this.lg.gain.setTargetAtTime(wv * .7, t, .5); this.bp.frequency.setTargetAtTime(380 + 600 * wd, t, .5);
+    },
+    say() { const e = this.env(); if ((e.qk || 0) > .02) return '地底有一聲咚'; if ((e.pm || 0) > .6) return '空氣悶，聲音也悶'; if ((e.wd || 0) > .5) return '風大，多了風聲'; if ((e.rh || 0) > .8) return '空氣潮，回音多'; if ((e.at || .55) < .3) return '天冷，聲音偏低'; if ((e.at || .55) > .8) return '天熱，聲音偏高'; if ((e.pm || 0) < .15) return '空氣乾淨，聲音亮'; return ''; }
+  };
+  window.__wxa = WXA;
   const ENS = { tier: 0, out: null, nextK: 0, tm: 0, on: false };
   /* [P97] 104 BPM、4 小節一輪、C 大調五聲；7 層依 Strudel 稿：種類數 1..7 依序加入 樹→木魚→波波→電報→顫音琴→泡泡→八音盒 */
   function ensTier(k) { return Math.max(0, Math.min(7, k | 0)); }
@@ -1639,7 +1664,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     ['weed', ['~ ~ ~ [g6 a6]', '~ ~ ~ ~', '~ ~ ~ [a6 c7]', '~ ~ ~ ~']],
     ['cloud', ['g5 ~ a5 g5', 'e5 ~ ~ ~', 'a5 ~ g5 e5', 'd5 ~ c5 ~']]
   ].map(l => ({ id: l[0], bars: l[1].map(barEv) }));
-  function ensVoice(id, t, f, dur) {
+  function ensVoice(id, t, f, dur) { f *= WXA.k;
     const o = AC.createOscillator(), g = AC.createGain(); let type = 'sine', v = .1, d = .2, f0 = f, ff = null;
     if (id === 'tree') { type = 'triangle'; v = .2; d = .24; ff = 760; } else if (id === 'soil') { type = 'triangle'; v = .08; d = .07; ff = 1300; f = 1000 + (f - 261) * .3; f0 = f; }
     else if (id === 'grass') { v = .1; d = .08; f0 = f * .5; } else if (id === 'mush') { v = .12; d = .1; } else if (id === 'petal') { v = .07; d = .38; ff = 1900; }
@@ -1652,8 +1677,8 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function ensSched() {
     if (!ENS.tier || !ENS.on || document.hidden) return; let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
     if (AC.state === 'suspended') { try { AC.resume(); } catch (x) {} return; }
-    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55 * (1 - .8 * ((typeof PFX !== 'undefined' && PFX.v) || 0)); ENS.lp = AC.createBiquadFilter(); ENS.lp.type = 'lowpass'; ENS.lp.frequency.value = 12000; ENS.out.connect(ENS.lp); ENS.lp.connect(AC.destination); }
-    { const e = window.__env || {}; ENS.lp.frequency.setTargetAtTime(11000 - 7500 * (e.pm || 0), AC.currentTime, .5); }   /* [P100] PM2.5 越高聲音越悶，空氣乾淨就清澈 */
+    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55 * (1 - .8 * ((typeof PFX !== 'undefined' && PFX.v) || 0)); ENS.lp = AC.createBiquadFilter(); ENS.lp.type = 'lowpass'; ENS.lp.frequency.value = 12000; ENS.out.connect(ENS.lp); ENS.lp.connect(AC.destination); try { WXA.tap(ENS.lp); } catch (e) {} }
+    try { WXA.tick(); } catch (e) {}   /* [P100] PM2.5 越高聲音越悶，空氣乾淨就清澈 */
     const wall = Date.now(), acNow = AC.currentTime; let bi = Math.max(ENS.nextB || 0, Math.floor(wall / BAR));
     for (; bi * BAR < wall + 600; bi++) {
       ENL.slice(0, ENS.tier).forEach(L => L.bars[bi % 4].forEach(e => { const t = acNow + (bi * BAR + e.at * BAR - wall) / 1000; if (t < acNow) return; e.notes.forEach(f => ensVoice(L.id, t, f, e.dur * BAR / 1000)); }));
@@ -1950,7 +1975,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       if (Math.abs(PFX.v - want) < .01) PFX.v = want;
       if (!AC) return; const now = AC.currentTime;
       for (const k in TSND.sl) { const s = TSND.sl[k]; if (TN.on && k === 'sp_' + TN.id) continue; const m = s.sp ? 1 + .45 * PFX.v : 1 - .8 * PFX.v; s.g.gain.setTargetAtTime((s.tg || 0) * m, now, .2); }
-      if (ENS.out) ENS.out.gain.setTargetAtTime(.55 * (1 - .8 * PFX.v), now, .25);
+      if (ENS.out) ENS.out.gain.setTargetAtTime(.55 * (1 - .8 * PFX.v), now, .25); try { if (WXA.rv) WXA.tick(); } catch (e) {}
     } catch (e) {}
   }
   setInterval(focusTick, 150);
