@@ -917,7 +917,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     liveFx();
   }
   /* 收聲音的動態：聽到聲音後，音符和星星從四周飄進圓裡（越清楚越密、越亮）；調清楚鎖定時往外炸開 */
-  const ORBC = ['#F2619C', '#E7BEF8', '#93ABD9', '#EDE986'];
+  const ORBC = ['#EE8A97', '#B9CAE8', '#9FB4DD', '#F3AAB1'];
   function orbFx(k, on, now) {
     const w = $('#orbWrap'); if (!w) return;
     /* 11/14c：不再用 drop-shadow 光暈（會被元素邊界切出方形邊） */
@@ -1075,7 +1075,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function openSettle() {
     if (S.ended) return; S.ended = true; try { localStorage.removeItem('tunein.sess'); } catch (e) {} closeSheet(); clearInterval(S.settleTimer);
     const bk = bookGet(), SPL = ((CODEX.cfg && CODEX.cfg.spots) || []).filter(x => x.id !== 's01'), a = SPL.filter(x => bk[x.id]).length, kinds = new Set(S.planted.map(x => x.name)).size, aq = S.planted.length ? S.planted.reduce((t, x) => t + (x.q || 0), 0) / S.planted.length : 0;
-    let E = (a >= 7 || (NET.lv | 0) >= 2) ? ['小鎮好熱鬧', 'Blip 坐到你身邊，耳朵輕輕晃'] : a >= 4 ? ['小鎮熱鬧起來了', '好多聲音疊在一起了。'] : a >= 2 ? ['小鎮慢慢熱鬧起來', '你找到的聲音，讓小鎮更熱鬧。'] : ['小鎮靜悄悄', '下次再來，一起找聲音吧。'];   /* [P105] 結局改看找到幾種聲音（原本看叫醒幾位居民） */
+    let E = (a >= 9 || (NET.lv | 0) >= 2) ? ['小鎮好熱鬧', 'Blip 坐到你身邊，耳朵輕輕晃'] : a >= 5 ? ['小鎮熱鬧起來了', '好多聲音疊在一起了。'] : a >= 2 ? ['小鎮慢慢熱鬧起來', '你找到的聲音，讓小鎮更熱鬧。'] : ['小鎮靜悄悄', '下次再來，一起找聲音吧。'];   /* [P105] 結局改看找到幾種聲音（原本看叫醒幾位居民） */
     if (S.planted.length) E = [E[0], E[1] + '\n' + (aq >= .75 ? '你聽得很專心。' : '你種下的聲音也來幫忙了。')];
     S.end = E; $('#stRound').textContent = '時間到'; $('#stAll').textContent = E[0];
     const N7 = SPL.length || 7, CL = ['flower', 'house', 'stall', 'river'];
@@ -1122,10 +1122,10 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     const head = '<p class="tstep">Blip 的說明 ' + st + '／' + N_ST + '</p>', nxt = l => '<button class="btn btn-ink btn-block" data-act="next" type="button">' + l + '</button>';
     const ping = (x, y, c) => '<use href="#i-sprite" x="' + (x - 34) + '" y="' + (y - 38) + '" width="68" height="56" style="color:' + c + '"/>';
     const ILL = [
-      '<svg class="tillu" viewBox="20 8 280 168" aria-hidden="true"><ellipse cx="160" cy="138" rx="126" ry="14" fill="#B7E1D1" opacity=".55"/><g class="tfx t-walk"><g class="t-bob">' + ping(160, 112, '#FFB5C1') + '</g></g><g fill="#111111"><path class="t-arr" d="M222 150l14-8v16z"/></g><circle cx="46" cy="138" r="4" fill="#111111" opacity=".25"/><circle cx="270" cy="138" r="4" fill="#111111" opacity=".25"/></svg>',
-      '<svg class="tillu" viewBox="20 8 280 168" aria-hidden="true"><ellipse cx="160" cy="146" rx="126" ry="12" fill="#B7E1D1" opacity=".55"/>' + ping(84, 112, '#FFB5C1') + '<g transform="translate(236 122)" stroke-linejoin="round"><path d="M-27.5 -34.4 L-28.7 -33.1 L-29.8 -31.1 L-30.8 -26.2 L-30.5 -21.5 L-28.4 -13.6 L-32.2 -9.1 L-35.2 -3.8 L-37.0 1.4 L-38.0 8.2 L-37.6 12.7 L-36.4 16.5 L-34.3 20.6 L-31.3 24.5 L-26.2 28.6 L-19.0 32.3 L-10.3 34.7 L-5.7 35.5 L-0.5 35.9 L7.9 35.5 L17.0 33.5 L24.3 30.3 L30.1 26.2 L33.6 22.4 L36.2 17.9 L37.4 13.9 L37.9 6.4 L37.1 0.6 L35.3 -4.7 L32.2 -10.2 L29.0 -14.1 L29.0 -15.0 L30.4 -19.1 L31.1 -23.1 L30.9 -27.9 L30.4 -29.7 L29.2 -31.8 L27.7 -33.2 L26.0 -34.0 L24.5 -34.3 L21.8 -34.1 L18.8 -33.1 L15.3 -31.1 L12.0 -28.4 L8.9 -25.1 L4.4 -25.5 L-0.9 -25.6 L-8.2 -24.9 L-11.0 -28.7 L-14.1 -31.9 L-18.4 -34.8 L-21.1 -35.8 L-23.5 -36.0 L-25.5 -35.6Z" fill="#000" stroke="#000" stroke-width=".8"/><path d="M6.3 -2.8 L5.5 -1.7 L5.7 0.2 L6.8 1.3 L7.9 1.3 L8.9 0.3 L8.9 -1.6 L7.7 -2.9ZM-0.4 -2.9 L-1.8 -2.4 L-2.6 -1.3 L-2.7 -0.4 L-2.3 0.5 L-1.1 1.2 L0.3 0.9 L1.3 -0.6 L0.9 -2.2ZM5.7 -8.6 L5.5 -7.2 L5.9 -6.1 L6.8 -5.2 L8.9 -4.5 L10.1 -4.5 L12.0 -5.1 L13.3 -6.2 L13.8 -7.5 L13.6 -8.6 L13.0 -9.5 L10.6 -10.6 L8.2 -10.5 L6.6 -9.7ZM-7.7 -8.7 L-7.8 -7.4 L-7.4 -6.5 L-6.3 -5.4 L-4.0 -4.6 L-2.2 -4.6 L-0.8 -5.0 L0.6 -6.1 L1.0 -7.0 L0.5 -9.0 L-0.3 -9.8 L-2.6 -10.7 L-5.6 -10.5 L-6.8 -9.8ZM22.5 -32.4 L19.5 -31.1 L17.2 -29.2 L14.3 -25.8 L12.7 -22.8 L20.5 -18.1 L20.8 -18.3 L21.0 -17.8 L25.6 -15.2 L26.1 -15.2 L26.2 -15.7 L25.7 -16.2 L26.2 -16.4 L28.2 -22.0 L28.6 -24.3 L28.5 -27.9 L27.8 -30.1 L26.2 -31.9 L24.5 -32.5ZM-22.2 -33.1 L-24.3 -33.0 L-26.2 -31.9 L-27.6 -30.1 L-28.4 -27.6 L-28.4 -25.3 L-27.6 -21.8 L-25.9 -18.0 L-24.0 -15.2 L-23.3 -15.3 L-10.9 -21.8 L-11.0 -22.8 L-11.8 -23.5 L-15.4 -28.7 L-18.5 -31.5 L-20.4 -32.6Z" fill="#F7F7F7" stroke="#F7F7F7" stroke-width=".5"/><path d="M22.1 -3.5 L19.8 -2.9 L17.5 -1.0 L16.1 1.6 L15.9 4.8 L17.0 7.9 L18.6 9.7 L20.9 11.0 L23.4 11.2 L25.9 10.4 L28.2 8.3 L29.4 5.5 L29.5 3.0 L28.6 0.1 L26.8 -2.0 L24.3 -3.3ZM-18.3 -4.4 L-20.7 -3.6 L-23.2 -1.4 L-24.4 0.8 L-24.9 4.4 L-24.2 7.2 L-22.4 9.7 L-19.5 11.3 L-17.1 11.4 L-15.4 10.9 L-13.9 10.0 L-12.0 7.9 L-11.0 5.7 L-10.7 2.1 L-11.7 -0.9 L-13.6 -3.1 L-15.8 -4.2Z" fill="#FF5A5A" stroke="#FF5A5A" stroke-width=".5"/><path d="M-8.1 8.0 L-6.9 8.6 L-4.5 9.0 L-0.1 8.6 L2.0 7.4 L2.2 6.7 L2.7 6.6 L3.5 5.4 L4.2 6.7 L5.3 7.7 L7.8 8.9 L11.9 9.0 L13.1 8.4 L14.2 8.3 L13.9 7.7 L11.5 6.5 L9.5 4.5 L6.9 3.0 L4.8 2.6 L3.5 3.4 L2.7 2.5 L1.9 2.2 L0.4 2.4 L-1.4 3.2Z" fill="#D2D2D2" stroke="#D2D2D2" stroke-width=".5"/></g><g class="tfx t-pop"><path d="M212 36h30a13 13 0 0 1 0 26h-17l-7 9 1-9h-7a13 13 0 0 1 0-26z" fill="#fff" stroke="#111111" stroke-width="2.5" stroke-linejoin="round"/><g fill="#111111"><circle class="tfx t-dot" cx="215" cy="49" r="3"/><circle class="tfx t-dot" cx="227" cy="49" r="3"/><circle class="tfx t-dot" cx="239" cy="49" r="3"/></g></g></svg>',
-      '<svg class="tillu" viewBox="20 8 280 168" aria-hidden="true"><ellipse cx="160" cy="140" rx="126" ry="12" fill="#B7E1D1" opacity=".55"/><g transform="translate(160 78)"><circle class="tfx t-ring" r="26"/><circle class="tfx t-ring b" r="26"/><circle class="tfx t-ring c" r="26"/><g class="tfx t-bob"><g fill="#FFB5C1"><circle cx="0" cy="-24" r="14"/><circle cx="23" cy="-8" r="14"/><circle cx="14" cy="19" r="14"/><circle cx="-14" cy="19" r="14"/><circle cx="-23" cy="-8" r="14"/></g><circle r="12" fill="#FFE59A"/></g></g><rect x="70" y="138" width="180" height="14" rx="7" fill="#fff" stroke="#111111" stroke-width="3"/><rect class="t-fill" x="73" y="141" width="174" height="8" rx="4" fill="#6FBF9F"/></svg>',
-      '<svg class="tillu" viewBox="20 8 280 168" aria-hidden="true"><ellipse cx="160" cy="150" rx="126" ry="10" fill="#B7E1D1" opacity=".55"/><g transform-origin="center"><rect class="tfx t-key" x="58" y="82" width="56" height="62" rx="18" fill="#A9D3FF"/><rect class="tfx t-key k2" x="132" y="58" width="56" height="86" rx="18" fill="#B7E1D1"/><rect class="tfx t-key k3" x="206" y="30" width="56" height="114" rx="18" fill="#FFB5C1"/></g><g font-family="sans-serif" font-weight="900" font-size="18" fill="#111111" text-anchor="middle"><text x="86" y="170">低</text><text x="160" y="170">中</text><text x="234" y="170">高</text></g></svg>'
+      '<svg class="tillu" viewBox="20 8 280 168" aria-hidden="true"><ellipse cx="160" cy="138" rx="126" ry="14" fill="#B9CAE8" opacity=".55"/><g class="tfx t-walk"><g class="t-bob">' + ping(160, 112, '#F3AAB1') + '</g></g><g fill="#111111"><path class="t-arr" d="M222 150l14-8v16z"/></g><circle cx="46" cy="138" r="4" fill="#111111" opacity=".25"/><circle cx="270" cy="138" r="4" fill="#111111" opacity=".25"/></svg>',
+      '<svg class="tillu" viewBox="20 8 280 168" aria-hidden="true"><ellipse cx="160" cy="146" rx="126" ry="12" fill="#B9CAE8" opacity=".55"/>' + ping(84, 112, '#F3AAB1') + '<g transform="translate(236 122)" stroke-linejoin="round"><path d="M-27.5 -34.4 L-28.7 -33.1 L-29.8 -31.1 L-30.8 -26.2 L-30.5 -21.5 L-28.4 -13.6 L-32.2 -9.1 L-35.2 -3.8 L-37.0 1.4 L-38.0 8.2 L-37.6 12.7 L-36.4 16.5 L-34.3 20.6 L-31.3 24.5 L-26.2 28.6 L-19.0 32.3 L-10.3 34.7 L-5.7 35.5 L-0.5 35.9 L7.9 35.5 L17.0 33.5 L24.3 30.3 L30.1 26.2 L33.6 22.4 L36.2 17.9 L37.4 13.9 L37.9 6.4 L37.1 0.6 L35.3 -4.7 L32.2 -10.2 L29.0 -14.1 L29.0 -15.0 L30.4 -19.1 L31.1 -23.1 L30.9 -27.9 L30.4 -29.7 L29.2 -31.8 L27.7 -33.2 L26.0 -34.0 L24.5 -34.3 L21.8 -34.1 L18.8 -33.1 L15.3 -31.1 L12.0 -28.4 L8.9 -25.1 L4.4 -25.5 L-0.9 -25.6 L-8.2 -24.9 L-11.0 -28.7 L-14.1 -31.9 L-18.4 -34.8 L-21.1 -35.8 L-23.5 -36.0 L-25.5 -35.6Z" fill="#000" stroke="#000" stroke-width=".8"/><path d="M6.3 -2.8 L5.5 -1.7 L5.7 0.2 L6.8 1.3 L7.9 1.3 L8.9 0.3 L8.9 -1.6 L7.7 -2.9ZM-0.4 -2.9 L-1.8 -2.4 L-2.6 -1.3 L-2.7 -0.4 L-2.3 0.5 L-1.1 1.2 L0.3 0.9 L1.3 -0.6 L0.9 -2.2ZM5.7 -8.6 L5.5 -7.2 L5.9 -6.1 L6.8 -5.2 L8.9 -4.5 L10.1 -4.5 L12.0 -5.1 L13.3 -6.2 L13.8 -7.5 L13.6 -8.6 L13.0 -9.5 L10.6 -10.6 L8.2 -10.5 L6.6 -9.7ZM-7.7 -8.7 L-7.8 -7.4 L-7.4 -6.5 L-6.3 -5.4 L-4.0 -4.6 L-2.2 -4.6 L-0.8 -5.0 L0.6 -6.1 L1.0 -7.0 L0.5 -9.0 L-0.3 -9.8 L-2.6 -10.7 L-5.6 -10.5 L-6.8 -9.8ZM22.5 -32.4 L19.5 -31.1 L17.2 -29.2 L14.3 -25.8 L12.7 -22.8 L20.5 -18.1 L20.8 -18.3 L21.0 -17.8 L25.6 -15.2 L26.1 -15.2 L26.2 -15.7 L25.7 -16.2 L26.2 -16.4 L28.2 -22.0 L28.6 -24.3 L28.5 -27.9 L27.8 -30.1 L26.2 -31.9 L24.5 -32.5ZM-22.2 -33.1 L-24.3 -33.0 L-26.2 -31.9 L-27.6 -30.1 L-28.4 -27.6 L-28.4 -25.3 L-27.6 -21.8 L-25.9 -18.0 L-24.0 -15.2 L-23.3 -15.3 L-10.9 -21.8 L-11.0 -22.8 L-11.8 -23.5 L-15.4 -28.7 L-18.5 -31.5 L-20.4 -32.6Z" fill="#F7F7F7" stroke="#F7F7F7" stroke-width=".5"/><path d="M22.1 -3.5 L19.8 -2.9 L17.5 -1.0 L16.1 1.6 L15.9 4.8 L17.0 7.9 L18.6 9.7 L20.9 11.0 L23.4 11.2 L25.9 10.4 L28.2 8.3 L29.4 5.5 L29.5 3.0 L28.6 0.1 L26.8 -2.0 L24.3 -3.3ZM-18.3 -4.4 L-20.7 -3.6 L-23.2 -1.4 L-24.4 0.8 L-24.9 4.4 L-24.2 7.2 L-22.4 9.7 L-19.5 11.3 L-17.1 11.4 L-15.4 10.9 L-13.9 10.0 L-12.0 7.9 L-11.0 5.7 L-10.7 2.1 L-11.7 -0.9 L-13.6 -3.1 L-15.8 -4.2Z" fill="#FF5A5A" stroke="#FF5A5A" stroke-width=".5"/><path d="M-8.1 8.0 L-6.9 8.6 L-4.5 9.0 L-0.1 8.6 L2.0 7.4 L2.2 6.7 L2.7 6.6 L3.5 5.4 L4.2 6.7 L5.3 7.7 L7.8 8.9 L11.9 9.0 L13.1 8.4 L14.2 8.3 L13.9 7.7 L11.5 6.5 L9.5 4.5 L6.9 3.0 L4.8 2.6 L3.5 3.4 L2.7 2.5 L1.9 2.2 L0.4 2.4 L-1.4 3.2Z" fill="#D2D2D2" stroke="#D2D2D2" stroke-width=".5"/></g><g class="tfx t-pop"><path d="M212 36h30a13 13 0 0 1 0 26h-17l-7 9 1-9h-7a13 13 0 0 1 0-26z" fill="#fff" stroke="#111111" stroke-width="2.5" stroke-linejoin="round"/><g fill="#111111"><circle class="tfx t-dot" cx="215" cy="49" r="3"/><circle class="tfx t-dot" cx="227" cy="49" r="3"/><circle class="tfx t-dot" cx="239" cy="49" r="3"/></g></g></svg>',
+      '<svg class="tillu" viewBox="20 8 280 168" aria-hidden="true"><ellipse cx="160" cy="140" rx="126" ry="12" fill="#B9CAE8" opacity=".55"/><g transform="translate(160 78)"><circle class="tfx t-ring" r="26"/><circle class="tfx t-ring b" r="26"/><circle class="tfx t-ring c" r="26"/><g class="tfx t-bob"><g fill="#F3AAB1"><circle cx="0" cy="-24" r="14"/><circle cx="23" cy="-8" r="14"/><circle cx="14" cy="19" r="14"/><circle cx="-14" cy="19" r="14"/><circle cx="-23" cy="-8" r="14"/></g><circle r="12" fill="#F6CDC9"/></g></g><rect x="70" y="138" width="180" height="14" rx="7" fill="#fff" stroke="#111111" stroke-width="3"/><rect class="t-fill" x="73" y="141" width="174" height="8" rx="4" fill="#6FBF9F"/></svg>',
+      '<svg class="tillu" viewBox="20 8 280 168" aria-hidden="true"><ellipse cx="160" cy="150" rx="126" ry="10" fill="#B9CAE8" opacity=".55"/><g transform-origin="center"><rect class="tfx t-key" x="58" y="82" width="56" height="62" rx="18" fill="#B9CAE8"/><rect class="tfx t-key k2" x="132" y="58" width="56" height="86" rx="18" fill="#B9CAE8"/><rect class="tfx t-key k3" x="206" y="30" width="56" height="114" rx="18" fill="#F3AAB1"/></g><g font-family="sans-serif" font-weight="900" font-size="18" fill="#111111" text-anchor="middle"><text x="86" y="170">低</text><text x="160" y="170">中</text><text x="234" y="170">高</text></g></svg>'
     ];
     const PG = [   // Blip 的開場說明（只講目標；操作步驟改成在小鎮畫面上隨時提示，見 coachTick）
       ['嗨，我是 Blip', '這個顏色很適合你的 Ping。小鎮太安靜了，我們一起讓它熱鬧起來。'],
@@ -1196,7 +1196,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function closeCollect() { const o = $('#lsOv'), f = $('#lsFr'); if (o) o.hidden = true; if (f) f.src = 'about:blank'; try { trayRender(); } catch (e) {} }
   /* ---- 種子選擇列：在 Unity 畫面上選種子 → 種在 Ping 站的地方（或給想聽的居民） ---- */
   var SKEY = ['bird', 'chime', 'clock', 'chick', 'rain', 'drop', 'frog', 'cricket', 'fire', 'owl', 'sea', 'wind', 'bell', 'down1', 'down2', 'down3', 'odd1', 'odd2', 'down4', 'down5', 'odd3', 'odd4', 'odd5'];
-  var SNAME = { bird: '樹梢的鳥', chime: '花瓣共鳴', clock: '蘑菇小電報', chick: '小雞', rain: '雨', drop: '波波聲', frog: '水草呼吸', cricket: '蟲鳴', fire: '土裡悄悄話', owl: '大樹伸懶腰', sea: '海浪', wind: '風', bell: '雲朵的重量', down1: '降頻啾聲', down2: '低低震動', down3: '拉長和音', odd1: '咕嚕嚕', odd2: '沙沙掃過', down4: '慢慢鯨歌', down5: '放慢雨滴', odd3: '冒泡泡', odd4: '玻璃呼吸', odd5: '爬樓梯' };
+  var SNAME = { bird: '樹梢的鳥', chime: '花瓣共鳴', clock: '蘑菇小電報', chick: '小雞敲門', rain: '雨', drop: '波波聲', frog: '水草呼吸', cricket: '草叢蟲鳴', fire: '土裡悄悄話', owl: '大樹伸懶腰', sea: '海浪', wind: '樹葉的風', bell: '雲朵的重量', down1: '降頻啾聲', down2: '低低震動', down3: '拉長和音', odd1: '咕嚕嚕', odd2: '沙沙掃過', down4: '慢慢鯨歌', down5: '放慢雨滴', odd3: '冒泡泡', odd4: '玻璃呼吸', odd5: '爬樓梯' };
   const TR = { sel: -1, h: '', open: false };
   function seedsGet() { try { return JSON.parse(localStorage.getItem('tunein.seeds') || '[]'); } catch (e) { return []; } }
   function seedsSet(a) { try { localStorage.setItem('tunein.seeds', JSON.stringify(a)); } catch (e) {} }
@@ -1234,7 +1234,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     if (!el) { el = document.createElement('div'); el.id = 'cdots'; el.setAttribute('role', 'img'); document.body.appendChild(el); }
     const show = S.screen === 'explore' && S.started && !S.ended && !(typeof bdOn !== 'undefined' && bdOn) && !(typeof CINE !== 'undefined' && CINE.on);
     el.hidden = !show; if (!show) return;
-    const n = Math.min(CD.n, cdKinds()), hx = (typeof CHEX === 'string' && CHEX) ? CHEX : '#F2619C';
+    const n = Math.min(CD.n, cdKinds()), hx = (typeof CHEX === 'string' && CHEX) ? CHEX : '#EE8A97';
     let h = '';
     for (let i = 0; i < CD.n; i++) h += '<i class="' + (i < n ? 'on' : '') + '"' + (i < n ? ' style="background:' + hx + '"' : '') + '></i>';
     if (h !== CD.h) { CD.h = h; el.innerHTML = h; el.setAttribute('aria-label', '收集進度 ' + n + '／' + CD.n); if (n > CD.last) { const on = el.querySelector('i:nth-child(' + n + ')'); if (on) { on.classList.add('pop'); } } CD.last = n; }
@@ -1412,7 +1412,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   // 波形：不清楚＝亂抖的雜訊線，越清楚越整齊、越偏粉紅；視覺上就是「訊號變乾淨」
   function tnWave(c, now, lock) {
     const g = tnCv.getContext('2d'), W = tnCv.width, H = tnCv.height; g.clearRect(0, 0, W, H);
-    const col = lock ? '#F2619C' : c > .5 ? '#E9A3C0' : '#B9B3C6'; g.strokeStyle = col; g.lineWidth = 6; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath();
+    const col = lock ? '#EE8A97' : c > .5 ? '#E9A3C0' : '#B9B3C6'; g.strokeStyle = col; g.lineWidth = 6; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath();
     for (let x = 0; x <= W; x += 6) { const t = x / W, base = Math.sin(t * 6.28 * 3 + now / 220) * 26 * (.35 + c * .65), nz = (Math.random() - .5) * 2 * 40 * Math.pow(1 - c, 1.4); const y = H / 2 + base + nz; x ? g.lineTo(x, y) : g.moveTo(x, y); }
     g.stroke();
   }
@@ -1467,7 +1467,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   }
   function seedFly() {   // [P28e] 收下時：一顆種子從畫面中央飛進「種花」按鈕
     try { const f = $('#uFrame'), r = f && f.getBoundingClientRect(), tb = document.querySelector('.sdx-go.big'), tr = tb && tb.getBoundingClientRect(); if (!r || !tr) return;
-      const e = document.createElement('div'); e.style.cssText = 'position:fixed;z-index:99;width:22px;height:28px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#F2C766;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18);pointer-events:none;left:' + (r.left + r.width / 2 - 11) + 'px;top:' + (r.top + r.height * .45) + 'px';
+      const e = document.createElement('div'); e.style.cssText = 'position:fixed;z-index:99;width:22px;height:28px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#F6CDC9;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18);pointer-events:none;left:' + (r.left + r.width / 2 - 11) + 'px;top:' + (r.top + r.height * .45) + 'px';
       document.body.appendChild(e); const dx = tr.left + tr.width / 2 - 11 - (r.left + r.width / 2 - 11), dy = tr.top + tr.height / 2 - 14 - (r.top + r.height * .45);
       const a = e.animate([{ transform: 'translate(0,0) scale(1.6)', opacity: 1 }, { transform: 'translate(' + dx * .5 + 'px,' + (dy * .5 - 60) + 'px) scale(1.1)', opacity: 1, offset: .5 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.5)', opacity: .2 }], { duration: 900, easing: 'ease-in-out' });
       a.onfinish = () => { e.remove(); if (tb) tb.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 300 }); }; } catch (x) {}
@@ -1487,7 +1487,12 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     owl: r => { swp(131 * r, 165 * r, 'triangle', .2, .9, 0); tone(262 * r, 'sine', .05, .7, .05); },
     frog: r => { [0, .16, .32].forEach((d, i) => swp((1100 + i * 220) * r, (1500 + i * 260) * r, 'sine', .08, .14, d)); },
     chime: r => { tone(E5 * r, 'sine', .1, .8, 0); tone(G5 * r, 'sine', .1, .8, 0); tone(E5 * r * 2, 'sine', .03, .5, 0); },
-    bell: r => { [C6, E6, G6, E6, C6].forEach((f, i) => tone(f * r, 'sine', .07, .32, i * .13)); }
+    bell: r => { [C6, E6, G6, E6, C6].forEach((f, i) => tone(f * r, 'sine', .07, .32, i * .13)); },
+    cricket: r => { [0, .09, .18, .4, .49, .58].forEach(d => tone(G6 * r, 'sine', .05, .05, d)); },   /* [P122] 新五個聲音的起手式 */
+    chick: r => { [0, .14, .28].forEach((d, i) => swp((2400 + i * 300) * r, (3400 + i * 300) * r, 'sine', .08, .09, d)); },
+    wind: r => { swp(300 * r, 700 * r, 'triangle', .07, .9, 0); swp(420 * r, 900 * r, 'sine', .04, .8, .12); },
+    down4: r => { swp(220 * r, 140 * r, 'sine', .16, 1.2, 0); tone(110 * r, 'sine', .06, 1, .1); },
+    odd4: r => { [C6, E6, G6].forEach((f, i) => tone(f * r * 1.005, 'sine', .06, .5, i * .1)); }
   };
   function cuePlay(k) {
     try { ensureAudio(); const e = window.__env, r = e ? .85 + .3 * ((e.at || .5) * .6 + (e.sw || .5) * .4) : 1; (CUE[k] || CUE.bird)(r); } catch (e) {}
@@ -1664,7 +1669,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   window.__wxa = WXA;
   const ENS = { tier: 0, out: null, nextK: 0, tm: 0, on: false };
   /* [P97] 104 BPM、4 小節一輪、C 大調五聲；7 層依 Strudel 稿：種類數 1..7 依序加入 樹→木魚→波波→電報→顫音琴→泡泡→八音盒 */
-  function ensTier(k) { return Math.max(0, Math.min(7, k | 0)); }
+  function ensTier(k) { return Math.max(0, Math.min(12, k | 0)); }   /* [P122] 7→12 層 */
   const NS = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }, nHz = n => { const m = /^([a-g])(\d)$/.exec(n); return m ? 440 * Math.pow(2, (NS[m[1]] + (m[2] - 4) * 12 - 9) / 12) : 0; };
   function barEv(str) {   // 一小節字串 "[~ c4 ~ c4]" → [{at 0..1, dur, notes[]}]
     const out = []; let i = 0;
@@ -1680,22 +1685,29 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     ['mush', ['~ [g4 a4] ~ ~', '~ ~ [e4 g4] ~', '~ [a4 c5] ~ ~', '~ ~ [g4 e4] ~']],
     ['petal', ['e5,g5 ~ ~ ~', '~ ~ c5,e5 ~', 'f5,a5 ~ ~ ~', '~ ~ d5,g5 ~']],
     ['weed', ['~ ~ ~ [g6 a6]', '~ ~ ~ ~', '~ ~ ~ [a6 c7]', '~ ~ ~ ~']],
-    ['cloud', ['g5 ~ a5 g5', 'e5 ~ ~ ~', 'a5 ~ g5 e5', 'd5 ~ c5 ~']]
+    ['cloud', ['g5 ~ a5 g5', 'e5 ~ ~ ~', 'a5 ~ g5 e5', 'd5 ~ c5 ~']],
+    ['cri', ['~ ~ g6 g6', '~ ~ ~ ~', '~ ~ e6 e6', '~ ~ ~ ~']],   /* [P122] 新五層：蟲鳴／小雞／風／鯨歌／露珠 */
+    ['chk', ['~ ~ ~ c6', '~ e6 ~ ~', '~ ~ ~ g6', 'a6 ~ ~ ~']],
+    ['wnd', ['g3,d4 ~ ~ ~', '~ ~ ~ ~', 'e3,b3 ~ ~ ~', '~ ~ ~ ~']],
+    ['whl', ['c3 ~ ~ ~', '~ ~ ~ ~', 'g2 ~ ~ ~', '~ ~ ~ ~']],
+    ['dew', ['~ [c6 e6] ~ ~', '~ ~ ~ ~', '~ [d6 g6] ~ ~', '~ ~ ~ ~']]
   ].map(l => ({ id: l[0], bars: l[1].map(barEv) }));
   function ensVoice(id, t, f, dur) { f *= WXA.k;
     const o = AC.createOscillator(), g = AC.createGain(); let type = 'sine', v = .1, d = .2, f0 = f, ff = null;
     if (id === 'tree') { type = 'triangle'; v = .2; d = .24; ff = 760; } else if (id === 'soil') { type = 'triangle'; v = .08; d = .07; ff = 1300; f = 1000 + (f - 261) * .3; f0 = f; }
     else if (id === 'grass') { v = .1; d = .08; f0 = f * .5; } else if (id === 'mush') { v = .12; d = .1; } else if (id === 'petal') { v = .07; d = .38; ff = 1900; }
-    else if (id === 'weed') { v = .06; d = .07; f0 = f * .7; } else { v = .11; d = .2; }
+    else if (id === 'weed') { v = .06; d = .07; f0 = f * .7; }
+    else if (id === 'cri') { v = .05; d = .05; f0 = f * .8; } else if (id === 'chk') { v = .07; d = .06; f0 = f * .6; } else if (id === 'wnd') { type = 'triangle'; v = .05; d = .9; ff = 900; }
+    else if (id === 'whl') { v = .12; d = .8; f0 = f * 1.2; ff = 520; } else if (id === 'dew') { v = .06; d = .32; ff = 4000; } else { v = .11; d = .2; }
     o.type = type; o.frequency.setValueAtTime(f0, t); if (f0 !== f) o.frequency.exponentialRampToValueAtTime(f, t + .04);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .008); g.gain.exponentialRampToValueAtTime(.0008, t + d);
     let n = o; if (ff) { const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = ff; o.connect(lp); n = lp; } n.connect(g); g.connect(ENS.out); o.start(t); o.stop(t + d + .05);
-    if (id === 'mush' || id === 'cloud') { const o2 = AC.createOscillator(), g2 = AC.createGain(); o2.type = 'sine'; o2.frequency.value = f * (id === 'cloud' ? 3 : 2); g2.gain.setValueAtTime(v * .3, t); g2.gain.exponentialRampToValueAtTime(.0008, t + d * .6); o2.connect(g2); g2.connect(ENS.out); o2.start(t); o2.stop(t + d); }
+    if (id === 'mush' || id === 'cloud' || id === 'dew') { const o2 = AC.createOscillator(), g2 = AC.createGain(); o2.type = 'sine'; o2.frequency.value = f * (id === 'cloud' ? 3 : id === 'dew' ? 2.01 : 2); g2.gain.setValueAtTime(v * .3, t); g2.gain.exponentialRampToValueAtTime(.0008, t + d * .6); o2.connect(g2); g2.connect(ENS.out); o2.start(t); o2.stop(t + d); }
   }
   function ensSched() {
     if (!ENS.tier || !ENS.on || document.hidden) return; let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
     if (AC.state === 'suspended') { try { AC.resume(); } catch (x) {} return; }
-    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55 * (1 - .8 * ((typeof PFX !== 'undefined' && PFX.v) || 0)); ENS.lp = AC.createBiquadFilter(); ENS.lp.type = 'lowpass'; ENS.lp.frequency.value = 12000; ENS.out.connect(ENS.lp); ENS.lp.connect(AC.destination); try { WXA.tap(ENS.lp); } catch (e) {} }
+    if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55 * (1 - .8 * ((typeof PFX !== 'undefined' && PFX.v) || 0)); ENS.lp = AC.createBiquadFilter(); ENS.lp.type = 'lowpass'; ENS.lp.frequency.value = 12000; ENS.out.connect(ENS.lp); try { const cp = AC.createDynamicsCompressor(); cp.threshold.value = -16; cp.knee.value = 12; cp.ratio.value = 4; cp.attack.value = .01; cp.release.value = .25; ENS.lp.connect(cp); cp.connect(AC.destination); } catch (e) { ENS.lp.connect(AC.destination); }   /* [P122] 12 層疊起來不爆音 */ try { WXA.tap(ENS.lp); } catch (e) {} }
     try { WXA.tick(); } catch (e) {}   /* [P100] PM2.5 越高聲音越悶，空氣乾淨就清澈 */
     const wall = Date.now(), acNow = AC.currentTime; let bi = Math.max(ENS.nextB || 0, Math.floor(wall / BAR));
     for (; bi * BAR < wall + 600; bi++) {
@@ -1820,7 +1832,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   window.addEventListener('message', e => {   // 頭上的 UI 搬到畫面左上角：我與其他玩家的名字、Blip 說的話
     const d = e.data; if (!d || d.tunein !== 'hud') return;
     let hb = $('#t3hud'); if (!hb) { hb = document.createElement('div'); hb.id = 't3hud'; const w = $('#mapWrap'); if (!w) return; w.appendChild(hb); }
-    const pill = (p, you) => '<span class="t3p"><i style="background:' + escH(p.c || '#FFB5C1') + '"></i>' + escH(p.n) + (you ? '<em>你</em>' : '') + '</span>';
+    const pill = (p, you) => '<span class="t3p"><i style="background:' + escH(p.c || '#F3AAB1') + '"></i>' + escH(p.n) + (you ? '<em>你</em>' : '') + '</span>';
     const names = []; if (d.me && d.me.n) names.push(pill(d.me, true)); (d.others || []).slice(0, 3).forEach(p => names.push(pill(p, false))); if ((d.others || []).length > 3) names.push('<span class="t3p">+' + ((d.others || []).length - 3) + '</span>');
     hb.innerHTML = (names.length ? '<div class="t3row">' + names.join('') + '</div>' : '') + (d.blip ? '<div class="t3say"><b>Blip</b>' + escH(d.blip) + '</div>' : '') + (d.npc && d.npc.text ? '<div class="t3say"><b>' + escH(d.npc.who) + '</b>' + escH(d.npc.text) + '</div>' : '');
     hb.hidden = !hb.innerHTML;
