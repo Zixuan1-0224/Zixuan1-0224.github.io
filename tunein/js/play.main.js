@@ -1344,7 +1344,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=120&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=121&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1501,7 +1501,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     try { trayRender(); } catch (e) {}
   }
   function detSet(on) {
-    DETS.on = on; if (on) DETS.until = Date.now() + DET_ON_MS; const b = $('#btnDet'); if (b) { b.setAttribute('aria-pressed', on); } detLabel();
+    DETS.on = on; try { ctlCalc(); ctlSend(); } catch (x) {} if (on) DETS.until = Date.now() + DET_ON_MS; const b = $('#btnDet'); if (b) { b.setAttribute('aria-pressed', on); } detLabel();
     if (on) { try { localStorage.setItem('tunein.det1', '1'); } catch (e) {} const bp = $('#btnDet'); bp && bp.classList.remove('sdx-pulse'); }
     toTown({ tunein: 'det', on }); if (!on) { clearTimeout(DETS.tm); tnClose(); spotHint(false); clearTimeout(hintTm); return; }
     ensureAudio(); DETS.t0 = Date.now(); DETS.info = null; DETS.near = false; detHint(); dtScan(); clearTimeout(hintTm);
@@ -1709,7 +1709,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 手機方向鍵 → 伺服器 /input → Unity：這位玩家的 Ping 由 Unity 管（和鍵盤一樣：上下前後、左右轉身）。
      看 Unity 全螢幕時每 0.25 秒送一次心跳（沒按也送 0），離開時通知伺服器，並把地圖上的 Ping 放到 Unity 裡最後的位置。 */
   const CTL = { held: {}, fwd: 0, turn: 0, hb: 0, lk: Date.now() % 100000, cf: Date.now() % 100000, bk: Date.now() % 100000 };   // lk 鎖定／cf 確認／bk 返回：按一下加 1
-  function ctlCalc() { CTL.fwd = (CTL.held.f ? (CTL.run ? 1.7 : 1) : 0) - (CTL.held.b ? 1 : 0); CTL.turn = (CTL.held.r ? 1 : 0) - (CTL.held.l ? 1 : 0); }
+  function ctlCalc() { const lis = DETS.on && S.tutDone; CTL.fwd = ((CTL.held.f ? (CTL.run && !lis ? 1.7 : 1) : 0) - (CTL.held.b ? 1 : 0)) * (lis ? .5 : 1);   /* [P108] 探測器開著＝側耳聆聽，只能慢慢走、不能跑：趕路先關、到了再開 */ CTL.turn = (CTL.held.r ? 1 : 0) - (CTL.held.l ? 1 : 0); }
   function ctlSend() {   // 網路慢時不堆請求：上一個還沒回來就先記著，回來後只送最新的按法
     if (T3) { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'ctl', fwd: CTL.fwd, turn: CTL.turn }, '*'); } catch (e) {} return; }   // Three.js 小鎮：方向鍵直接傳給畫面，不經過 Unity
     if (!NET.on || !NET.pid) return; const sg = CTL.fwd + ',' + CTL.turn + ',' + CTL.lk + CTL.cf + CTL.bk, nw = Date.now();

@@ -861,10 +861,17 @@ function voiceTick() {
     else BLIP.loc = '';
     blipBub();
   }
+  // [P109] 靜靜聽：探測器關著、站著不動 4 秒，會「隱約」聽到最近聲音的方向（不給距離、不給精確位置）＝關著也有事可做；每 14 秒最多一次，說 5 秒
+  if (me.moving || DET.on || TUT.on || TK.on) VOICE.still = now; else if (now - (VOICE.still || (VOICE.still = now)) > 4000 && now - (VOICE.tQ || 0) > 14000) {
+    let nb = null; try { const fw = new THREE.Vector3(); cam.getWorldDirection(fw); const rx = -fw.z, rz = fw.x;
+      SPOT.list.forEach(o => { if (o.got || !spotAct(o)) return; const dx = o.x - me.x, dz = -(o.z - me.z), d = Math.hypot(dx, dz); if (d < 60 && (!nb || d < nb.d)) nb = { d, a: Math.atan2(dx * rx + dz * rz, dx * fw.x + dz * fw.z) }; }); } catch (e) {}
+    if (nb) { const D = ['前面', '右前方', '右邊', '右後方', '後面', '左後方', '左邊', '左前方'], k = ((Math.round(nb.a / (Math.PI / 4)) % 8) + 8) % 8; VOICE.tQ = now; VOICE.nQ = now; VOICE.npc = { who: '靜靜聽', text: '隱約聽到' + D[k] + '有聲音……打開探測器看看' }; }
+  }
+  if (VOICE.nQ && now - VOICE.nQ > 5000) { VOICE.nQ = 0; if (VOICE.npc && VOICE.npc.who === '靜靜聽') VOICE.npc = null; }
   // 青蛙：站在釣魚碼頭 7 公尺內
   let near = false; if (WATER.on && WATER.fish) for (const h of WATER.fish) { if (Math.hypot(h.x - me.x, h.z - me.z) < 7) { near = true; break; } }
   if (near) { if (now - VOICE.tF > 7000) { VOICE.tF = now; const L = voicePool('frog'); if (L.length) { VOICE.npc = { who: '釣魚的青蛙', text: L[VOICE.fi++ % L.length][0] }; VOICE.nT = now; } } else if (VOICE.npc && now - VOICE.tF > 5500) VOICE.npc = null; }
-  else VOICE.npc = null;
+  else if (VOICE.npc && VOICE.npc.who === '釣魚的青蛙') VOICE.npc = null;
 }
 setInterval(() => { try { voiceTick(); } catch (e) {} }, 500);
 setInterval(() => { try { hudSend(); } catch (e) {} }, 500);
