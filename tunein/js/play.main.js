@@ -831,12 +831,12 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
       FISH.miss++; fishMsg('聲音溜走了。沒關係，再等它一次。', 2800); fishWait(500);
     }
   }
-  function fishQ() { const fq = focusQ(), rt = FISH.rt || 600, ta = rt <= 350 ? 1 : rt <= 700 ? .85 : .7; return Math.round(Math.max(.4, Math.min(1, (fq + ta) / 2 - .05 * FISH.miss)) * 100) / 100; }
+  function fishQ() { const fq = focusQ(), rt = FISH.rt || 600, ta = rt <= 450 ? 1 : rt <= 900 ? .88 : .75; return Math.round(Math.max(.5, Math.min(1, (fq + ta) / 2 - .05 * FISH.miss)) * 100) / 100; }
   /* 學→唱：聽清楚原聲後，玩家用自己的聲音唱出來。像不像（節奏、高低、輕重）決定種子飽滿度；種下去的是「玩家的版本」 */
   const SING = { on: false, orig: null, mine: null, q: null, parts: null };
   const LVL = { '低': 0, '中': 1, '高': 2 }, WGT = { '輕': 0, '中': 1, '重': 2 };
   function simOf(o, m) { const rh = o.rhythm === m.rhythm ? 1 : ((o.rhythm === '連續') !== (m.rhythm === '連續') ? 0 : .5), pt = 1 - Math.abs((LVL[o.pitch] | 0) - (LVL[m.pitch] | 0)) / 2, wt = 1 - Math.abs((WGT[o.weight] | 0) - (WGT[m.weight] | 0)) / 2; return .5 * rh + .35 * pt + .15 * wt; }
-  function singQ(o, m) { const fqn = Math.max(0, Math.min(1, (focusQ() - .4) / .6)); return Math.round(Math.max(.4, Math.min(1, .4 + .6 * (.8 * simOf(o, m) + .2 * fqn))) * 100) / 100; }
+  function singQ(o, m) { const fqn = Math.max(0, Math.min(1, (focusQ() - .4) / .6)); return Math.round(Math.max(.5, Math.min(1, .5 + .5 * (.85 * Math.min(1, simOf(o, m) * 1.15) + .15 * fqn))) * 100) / 100; }   /* [P93] 放寬容錯 */
   async function singIt() {
     SING.on = true; const bd = $('#btnDone'); bd.disabled = true; bd.classList.remove('ready'); bd.textContent = '唱吧…'; setL('換你了', '用嘴巴、拍手或敲桌子，把它唱出來');
     const fr = await record(3200, p => { try { setRing(p); } catch (e) {} });
@@ -1043,7 +1043,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   function qdots(c) { const n = Math.max(1, Math.min(3, Math.round((c.q == null ? .6 : c.q) * 3))); return '●'.repeat(n) + '○'.repeat(3 - n); }
   function plantRec(c, at, res) {
     const q = c.q == null ? .6 : c.q, m = c.mine || c; S.planted.push({ id: c.id, name: c.name, rhythm: m.rhythm, pitch: m.pitch, weight: m.weight, q, cls: c.cls || 'flower', at, res: res || '', t: Date.now() });
-    if (NET.on && NET.joined) netPost('/plant', { pid: NET.pid, rh: RH[m.rhythm] == null ? 0 : RH[m.rhythm], pt: PT[m.pitch] == null ? 1 : PT[m.pitch], wt: WT[m.weight] == null ? 0 : WT[m.weight], q, tr: c.bid || c.real || '', fine: c.fine ? 1 : 0, at, res: res || '' });
+    if (NET.on && NET.joined) netPost('/plant', { pid: NET.pid, rh: RH[m.rhythm] == null ? 0 : RH[m.rhythm], pt: PT[m.pitch] == null ? 1 : PT[m.pitch], wt: WT[m.weight] == null ? 0 : WT[m.weight], q, tr: c.bid || c.real || '', sn: (c.name || '').slice(0, 12), fine: c.fine ? 1 : 0, at, res: res || '' });
   }
   function plantGround() {   // 種在路邊：Ping 站哪就種哪
     if (!S.cards.length) { openSheet('<div class="sh-h"><span></span><div><h2>口袋是空的</h2></div>' + CLOSE + '</div><p>先去找正在響的花，靜下來聽，收一顆種子。</p>'); return; }
@@ -1213,6 +1213,20 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
     trayRender();
   }
   setInterval(() => { try { trayRender(); } catch (e) {} }, 1500);
+  /* [P93] 個人收集進度小圓點：4～5 顆（大螢幕仍是 8 種合奏）。已收集＝不同聲音種類數；固定位置不推擠版面；小鳥事件／非探索畫面隱藏；新回合 reset() 清空 S.cards 自然歸零 */
+  const CD = { n: 5, last: 0, h: '' };
+  function cdKinds() { const m = {}; (S.cards || []).forEach(c => { const k = c && (c.bid || c.real || c.name); if (k && c.clar !== 0) m[k] = 1; }); return Object.keys(m).length; }
+  function cdRender() {
+    let el = document.getElementById('cdots');
+    if (!el) { el = document.createElement('div'); el.id = 'cdots'; el.setAttribute('role', 'img'); document.body.appendChild(el); }
+    const show = S.screen === 'explore' && S.started && !S.ended && !(typeof bdOn !== 'undefined' && bdOn) && !(typeof CINE !== 'undefined' && CINE.on);
+    el.hidden = !show; if (!show) return;
+    const n = Math.min(CD.n, cdKinds()), hx = (typeof CHEX === 'string' && CHEX) ? CHEX : '#F2619C';
+    let h = '';
+    for (let i = 0; i < CD.n; i++) h += '<i class="' + (i < n ? 'on' : '') + '"' + (i < n ? ' style="background:' + hx + '"' : '') + '></i>';
+    if (h !== CD.h) { CD.h = h; el.innerHTML = h; el.setAttribute('aria-label', '收集進度 ' + n + '／' + CD.n); if (n > CD.last) { const on = el.querySelector('i:nth-child(' + n + ')'); if (on) { on.classList.add('pop'); } } CD.last = n; }
+  }
+  setInterval(() => { try { cdRender(); } catch (e) {} }, 500);
   window.addEventListener('message', e => { if (e.data && e.data.tunein === 'close') closeCollect(); });
   function resSync(rs) { S.rs = rs; let ch = false; rs.forEach(r => { if (r.done && MAIN.includes(r.id) && !S.woke[r.id]) { S.woke[r.id] = '聽到了'; ch = true; } }); if (ch) { try { renderGuide(); renderMap(); } catch (e) {} } }
   const NET = { on: false, api: '', pid: '', lastPoll: 0, lastPost: 0, px: -99, py: -99, joined: false, others: {} };
@@ -1304,7 +1318,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   /* 串流頁提早載入：加入小鎮的當下就先開始連線（隱藏著連），玩家切到 Unity 畫面時已經接好，不用再等 */
   const T3 = new URLSearchParams(location.search).get('t3') !== '0';   // 預設：手機自己用 Three.js 畫小鎮（不再串流 Unity 畫面）；網址加 ?t3=0 可退回串流
   function uPid() { try { const fr = $('#uFrame'); fr && fr.contentWindow && fr.contentWindow.postMessage({ tunein: 'pid', pid: NET.pid, restore: !!NET.restored }, '*'); } catch (e) {} }
-  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=110&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
+  function uLoad(f) { if (f && !f.getAttribute('src')) f.setAttribute('src', T3 ? '/tunein/town3d.html?v=111&gate=1&pid=' + encodeURIComponent(NET.pid || '') + ((new URLSearchParams(location.search).get('server') || '') ? '&server=' + encodeURIComponent(new URLSearchParams(location.search).get('server')) : '') : '/tunein/live.html?v=7&fit=cover&pid=' + encodeURIComponent(NET.pid || '')); }
   /* 小鎮裡種下的花、小鳥、太陽雨的聲音：town3d 每 0.25 秒回報附近的花，這裡用合成聲音庫播（只在小鎮畫面；不經過收聲音用的 A.bus，避免干擾判斷） */
   /* ═════════ [P28] 探測器＋調頻（子功能：CODEX 讀 sound_spots.json／TN 調頻小遊戲／detSet 開關／detHint 提示條／message 收 spotNear、detInfo） ═════════
      按「探測器」才聽得到小鎮裡微弱的聲音（左右耳辨方向）→ 走近 → 拖滑桿把聲音調到最清楚並穩住 → 收下變種子 */
@@ -1320,7 +1334,7 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
   }
   function bandIntro() {   // [P41] 新功能說明：教學後第一次看到聽法列時跳一次（探測器電量、三種聽法、找不到就換聽法）
     try { if (localStorage.getItem('tunein.bandIntro') === '1' || BANDS.intro) return; } catch (e) {} BANDS.intro = true; const sh = $('#sheet'); if (sh && !sh.hidden) { BANDS.intro = false; return; }
-    openSheet('<div class="sh-h"><span></span><div><h2>新功能：聽法</h2></div>' + CLOSE + '</div><ul class="bandhow"><li><b>探測器有電量</b><span>只能開 10 秒，用完充電 12 秒</span></li><li><b>三種聽法</b><span>平常聽、放慢聽、變調聽，各聽得到不同的聲音</span></li><li><b>聽不到？</b><span>換一種聽法，或先跟居民聊聊</span></li></ul><button class="btn btn-ink btn-block" type="button" id="bandOk">知道了</button>');
+    openSheet('<div class="sh-h"><span></span><div><h2>聽法</h2></div>' + CLOSE + '</div><ul class="bandhow"><li><b>探測器開 10 秒</b><span>用完充電 12 秒</span></li><li><b>聽不到？</b><span>換一種聽法</span></li></ul><button class="btn btn-ink btn-block" type="button" id="bandOk">知道了</button>');
     const b = $('#bandOk'); if (b) b.addEventListener('click', () => { try { localStorage.setItem('tunein.bandIntro', '1'); } catch (e) {} closeSheet(); });
   }
   function detTick() { try { if (DETS.on && S.tutDone && Date.now() > DETS.until) { DETS.cool = Date.now() + DET_COOL_MS; detSet(false); toast('探測器沒電了　充電 ' + DET_COOL_MS / 1000 + ' 秒', '', 2600); } detLabel(); } catch (e) {} }
@@ -1702,15 +1716,15 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
      歡迎 → 走走看 → 打開探測器 → 跟著箭頭 → 調清楚 → 種花；教學中小鎮只開一個教學聲音點、活動範圍縮小，結束後才解鎖全圖。
      每一步都由「玩家真的做了」才換下一步（走路、開探測器、靠近、收下、種花），不靠按「下一步」。 */
   const TUTS = [
-    { h: '歡迎來到聲音小鎮', p: '我是 Blip。收集聲音，種成花，小鎮就會熱鬧起來' },
-    { h: '先走走看', p: '右邊搖桿往前走，左邊轉身看看四周' },
-    { h: '打開探測器', p: '按下面的「探測器」，聲音點會亮起來' },
-    { h: '跟著箭頭', p: '朝箭頭走，走進發光的圈圈' },
-    { h: '調清楚', p: '滑動旋鈕，讓波形變得最整齊' },
-    { h: '種在小鳥旁', p: '帶著聲音走到花店旁，按「種花」' },
-    { h: '小鳥飛來了', p: '鳥叫聲回來了！走近居民可以聊聊，天氣也會變喔' }
+    { h: '歡迎來到聲音小鎮', p: '收集聲音，讓小鎮熱鬧' },
+    { h: '先走走看', p: '右鍵前進，左鍵轉身' },
+    { h: '打開探測器', p: '按下面的按鈕' },
+    { h: '跟著箭頭', p: '走進發光的圈' },
+    { h: '調清楚', p: '滑到波形最整齊' },
+    { h: '種在小鳥旁', p: '走到花店旁，按「種花」' },
+    { h: '小鳥飛來了', p: '去找居民聊聊' }
   ];
-  const TUT_NEAR = { h: '出現聲音點了', p: '這次是鳥叫聲，走進圈裡' };
+  const TUT_NEAR = { h: '出現聲音點了', p: '走進圈裡' };
   const TUTO = { on: false, ack: 0, mvT: 0, go: 0, plAt: 0 };
   const CINE = { on: false };
   const tutActive = () => U.m === 1 && S.started && !S.ended && !S.tutDone && !!(CODEX && CODEX.cfg);

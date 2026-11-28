@@ -757,7 +757,7 @@ body.ufull .dgrp .dcap{order:3;grid-column:1/-1;text-align:center;font-size:14px
 body.ufull .dk{width:100%;height:72px;border-radius:24px}
 body.ufull .dk svg{width:32px;height:32px}
 /* v140 直式：Unity 畫面加高（用剩餘空間），左右裁掉一些、角色維持在中間 */
-body.ufull #uFrame,body.ufull #mapWrap.ufull #uFrame{aspect-ratio:auto;height:clamp(220px,calc(100dvh - 410px),460px)}
+body.ufull #uFrame,body.ufull #mapWrap.ufull #uFrame{aspect-ratio:auto;height:clamp(220px,calc(100svh - 410px),460px)}
 @supports (height:1svh){body.ufull #uFrame,body.ufull #mapWrap.ufull #uFrame{height:clamp(220px,calc(100svh - 410px),460px)}}
 
 .tk-main.ok .tk-h{color:#111111}
@@ -948,8 +948,8 @@ body.ufull .guide .tk-main>div{min-width:0}
 
 /* ===== 收聲音頁：一頁式（不能滑動），版面固定不跳動 ===== */
 html,body{overscroll-behavior:none}
-body[data-screen="listen"]{overflow:hidden;height:100dvh;position:fixed;inset:0;width:100%}
-#s-listen{height:100dvh;overflow:hidden;touch-action:none}
+body[data-screen="listen"]{overflow:hidden;height:100svh;position:fixed;inset:0;width:100%}
+#s-listen{height:100svh;overflow:hidden;touch-action:none}
 #s-listen .inner{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #s-listen .lbar{flex:none;min-height:48px;padding-block:2px}
 #s-listen .lcenter{flex:1;min-height:0;overflow:hidden !important;justify-content:flex-start !important;gap:clamp(4px,1.2dvh,10px) !important;padding-block:0 !important}
@@ -1620,3 +1620,11 @@ body.lock .guide button,body.lock #btnCards,body.lock #btnBack{pointer-events:no
 #flwCard .fcTip{display:flex;flex-direction:column;gap:2px;min-height:44px;padding:8px 16px;border:2px solid #3E2A5A;border-radius:16px;background:#FFFCEB;color:#3E2A5A;font:inherit;text-align:center;box-shadow:0 3px 0 #E7BEF8;cursor:pointer;touch-action:manipulation}
 #flwCard .fcTip b{font-size:16px;line-height:1.3}
 #flwCard .fcTip span{font-size:14px;line-height:1.3;opacity:.8}
+
+/* [P93] 個人收集小圓點：固定在右上角計時下方，不佔版面、不擋操作 */
+#cdots{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 142px);right:26px;display:flex;gap:6px;pointer-events:none}
+#cdots[hidden]{display:none}
+#cdots i{width:14px;height:14px;border-radius:50%;border:1.5px solid #3E2A5A;background:rgba(255,252,235,.5);opacity:.6;box-sizing:border-box;transition:opacity .2s}
+#cdots i.on{opacity:1}
+#cdots i.pop{animation:cdpop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes cdpop{0%{transform:scale(.6)}60%{transform:scale(1.35)}100%{transform:scale(1)}}
