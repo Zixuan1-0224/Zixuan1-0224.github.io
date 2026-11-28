@@ -1220,6 +1220,26 @@ function pushOutSpawn() {   /* 出現點保險：萬一伺服器給的位置落�
     for (const b of boxes) { const m = PR + .3; if (me.x > b.x0 - m && me.x < b.x1 + m && me.z > b.z0 - m && me.z < b.z1 + m) { const l = me.x - (b.x0 - m), r = (b.x1 + m) - me.x, t = me.z - (b.z0 - m), u = (b.z1 + m) - me.z, mn = Math.min(l, r, t, u); if (mn === l) me.x = b.x0 - m; else if (mn === r) me.x = b.x1 + m; else if (mn === t) me.z = b.z0 - m; else me.z = b.z1 + m; } }
   }
 }
+/* [P93] 卡住保險：按著前進 1.2 秒幾乎沒位移（出生或走進碰撞／水面阻擋的死角）→ 先推出碰撞體，還是卡就找最近空地；連續卡兩次時搬到 3 公尺外 */
+function freeAt(x, z) {
+  if (waterBlocked(x, z)) return false;
+  for (const c of colliders) { const dx = x - c.x, dz = z - c.z, rr = c.r + PR; if (dx * dx + dz * dz < rr * rr) return false; }
+  for (const b of boxes) if (x > b.x0 - PR && x < b.x1 + PR && z > b.z0 - PR && z < b.z1 + PR) return false;
+  return true;
+}
+const STK = { n: 0, x: 0, z: 0, again: 0 };
+function unstick() {
+  try { pushOutSpawn(); } catch (e) {}
+  const far = STK.again >= 1;
+  if (!far && freeAt(me.x, me.z)) { STK.again++; return; }
+  for (let r = far ? 3 : 1.5; r <= 14; r += 1.5) for (let a = 0; a < 16; a++) { const x = me.x + Math.sin(a * .3927) * r, z = me.z + Math.cos(a * .3927) * r; if (Math.abs(x) < HALF - 2 && Math.abs(z) < HALF - 2 && freeAt(x, z)) { me.x = x; me.z = z; STK.again = 0; post({ tunein: 'dbg', s: 'unstick ' + x.toFixed(1) + ',' + z.toFixed(1) }); return; } }
+}
+function stuckGuard(dt) {
+  const f = ctl.fwd || keyCtl()[0];
+  if (!f || TK.on) { STK.n = 0; STK.x = me.x; STK.z = me.z; STK.again = 0; return; }
+  STK.n += dt;
+  if (STK.n > 1.2) { if (Math.hypot(me.x - STK.x, me.z - STK.z) < .4) unstick(); else STK.again = 0; STK.n = 0; STK.x = me.x; STK.z = me.z; }
+}
 function step(dt) {
   if (typeof TK !== 'undefined' && TK.on) { me.moving = false; return; }
   const [kf, kt] = keyCtl(), f = ctl.fwd || kf, t = ctl.turn || kt;
@@ -1443,7 +1463,7 @@ function frame(now) {
   if (GATE && appearGo && !meAppeared && me && me.obj) { if (!WD.t) WD.t = now; if (now - WD.t > 5000) { WD.t = 0; if (!spawned) { try { pushOutSpawn(); } catch (e) {} spawned = true; camPos.set(0, 0, 0); holdView(false); } meAppeared = true; appearAsked = true; try { pingAppear(me.obj, 200); } catch (e) { me.obj.scale.setScalar(1); } } } else if (meAppeared) WD.t = 0;   /* 保險：6 秒內出現流程沒完成（伺服器沒回等）就直接播出現動畫，Ping 不會一直隱形、方向鍵不會一直鎖住 */
   if (me && (me.lockUntil > now || (GATE && !meAppeared))) { ctl.fwd = 0; ctl.turn = 0; }
   if ((ctl.fwd || ctl.turn) && CTLDBG.hit && now - CTLDBG.hit > 1500) { ctl.fwd = 0; ctl.turn = 0; }   /* P62：放開的訊息漏掉時，1.5 秒沒收到心跳就自動停下，Ping 不會一直自己走 */
-  step(dt); postMove(now); checkNear();
+  step(dt); try { stuckGuard(dt); } catch (e) {} postMove(now); checkNear();
   me.gy = (me.gy || 0) + (groundY(me.x, me.z) - (me.gy || 0)) * .4; me.obj.position.copy(U(me.x, me.gy, me.z)); me.obj.rotation.y = Math.PI - me.yaw;   // Three 的 z 取負：朝向 (sin, -cos)
   if (me.obj.userData.mixer) { setAnim(me.obj, me.moving ? 'walk' : 'idle'); me.obj.userData.mixer.update(dt); }
   else if (me.obj.userData.body) me.obj.userData.body.position.y = 1 + (me.moving ? Math.abs(Math.sin(now / 110)) * .15 : 0);
