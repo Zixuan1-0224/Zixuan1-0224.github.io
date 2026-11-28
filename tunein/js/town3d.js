@@ -325,7 +325,16 @@ async function loadLate() {
     if (M.cheese) { { const CH2 = LMK.cheese || [47.4, .47, 93.5]; placeStatic('cheese', CH2[0], CH2[1], CH2[2], 0); } try { scene.traverse(o => { const ms = o.material ? [].concat(o.material) : []; ms.forEach(m => { if (m.map) try { renderer.initTexture(m.map); } catch (e) {} }); }); } catch (e) {} updateGrass(me.x, me.z, true); }
   } catch (e) { console.warn('late', e); }
 }
+/* [P84] 自動新種類：Unity 匯出的 props 出現沒登記過的款式（Assets/WebProps 的模型）→ 若 models/<款式>.glb 存在就自動登記；之後不用改這支程式 */
+async function registerAutoKinds() {
+  try {
+    const j = await loadLayout(), ks = [...new Set((j.props || []).map(t => t[0]))].filter(k => !MODELS[k] && /^[a-z0-9_]+$/.test(k));
+    await Promise.all(ks.map(async k => { try { const r = await fetch('./models/' + k + '.glb?v=' + (QP.get('v') || ''), { method: 'HEAD' }); if (!r.ok) return; MODELS[k] = { s: 1 }; TEXS[k] = [k]; PBY[k] = P_HOUSE; } catch (e) {} }));
+    if (ks.length) console.log('[auto kinds]', ks.filter(k => MODELS[k]).join(','), '缺檔：', ks.filter(k => !MODELS[k]).join(',') || '無');
+  } catch (e) { console.warn('auto kinds', e); }
+}
 async function loadModels() {
+  await registerAutoKinds();
   const names = Object.keys(MODELS).filter(k => !LATE.includes(k)), texs = [].concat(...Object.entries(TEXS).filter(([k]) => !LATE.includes(k)).map(e => e[1])); let n = 0; const tot = names.length + texs.length;
   const tick = () => { n++; const p = Math.round(n / tot * 100); document.getElementById('bi').style.width = p + '%'; document.getElementById('lt').textContent = 'Blip 正在布置小鎮… ' + p + '%'; parent.postMessage({ tunein: 'prog', p: Math.min(95, p) }, '*'); };
   await Promise.all(names.map(k => retry(() => gl.loadAsync('./models/' + k + '.glb')).then(g => { M[k] = g; }).catch(e => { console.warn('model', k, e); }).then(tick)
@@ -584,10 +593,12 @@ function buildWorld(L) {
     instParts([{ geometry: bg, material: unityMat(P_BUSH2, { color: new THREE.Color(1, 1, 1), vertexColors: true, side: THREE.DoubleSide }), m: new THREE.Matrix4() }], BU.map(t => ({ p: U(t[1], 0, t[3]), ry: t[4] * Math.PI / 180, s: t[5] / 70 * 1.5 })), null, true);
     BU.forEach(t => colliders.push({ x: t[1], z: t[3], r: 2.2 * t[5] / 70 })); }
   /* [P81] 房子、蘑菇：Unity 匯出 props（款式、外框中心x、底y、中心z、轉向、外框高）；依外框高縮放，不用管 FBX 匯入倍率 */
-  { const PR = L.props || [], kinds = ['home1', 'home2', 'mush1', 'mush2'];
+  { const PR = L.props || [], kinds = [...new Set(PR.map(t => t[0]))];
     kinds.forEach(k => { const rows = PR.filter(t => t[0] === k); if (!rows.length || !M[k]) return; const gh = modelBox(k).s.y || 1;
       instSet(k, rows.map(t => ({ p: U(t[1], t[2], t[3]), ry: Math.PI - t[4] * Math.PI / 180, s: t[5] / gh })), k, true, true);
-      if (k[0] === 'h') { const bs = modelBox(k).s; rows.forEach(t => { const f = t[5] / gh; colliders.push({ x: t[1], z: t[3], r: Math.max(bs.x, bs.z) * f * .35 }); }); } }); }
+      /* [P83] 房子、蘑菇都要有碰撞框：以外框置中後沿長邊排圓形（房子較大排多顆，蘑菇通常 1 顆） */
+      { const bs = modelBox(k).s, cb = new THREE.Box3(new THREE.Vector3(-bs.x / 2, 0, -bs.z / 2), new THREE.Vector3(bs.x / 2, bs.y, bs.z / 2));
+        rows.forEach(t => addBoxAsCircles(t[1], t[3], Math.PI - t[4] * Math.PI / 180, t[5] / gh, cb)); } }); }
   if (M.bench) { instSet('bench', L.benches.map(t => ({ p: U(t[1], 0, t[3]), ry: -t[4] * Math.PI / 180, s: sc(t, MODELS.bench.s) })), 'bench', false, true);
     const bb = modelBox('bench'); L.benches.forEach(t => addBoxAsCircles(t[1], t[3], -t[4] * Math.PI / 180, sc(t, MODELS.bench.s), bb.b)); }   // 長椅：依模型真實大小，沿長邊排幾顆圓形碰撞框
   if (M.stone) { L.stones = L.stones.filter(t => !/Shadow/.test(t[0]));   // 名字帶 Shadow 的是接地陰影貼片，不是石頭
