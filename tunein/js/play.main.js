@@ -1582,27 +1582,48 @@ return { ENV: ENV, SND: SND, bind: bind, loop: loop, halt: halt };
      手機和 Unity 都以「牆鐘每 4 秒」為一格（Date.now()%4000），所以不同裝置的節拍會對在一起（誤差＝裝置時鐘差，通常 <50ms）。
      全用 Web Audio 合成，音量很小（不蓋過花的聲音）；只在小鎮畫面且已按「開始」時播放 ═════════ */
   const ENS = { tier: 0, out: null, nextK: 0, tm: 0, on: false };
-  function ensTier(k) { return k >= 6 ? 3 : k >= 4 ? 2 : k >= 2 ? 1 : 0; }
-  function ensNote(t, f, dur, vol, type) { const o = AC.createOscillator(), g = AC.createGain(); o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .02); g.gain.exponentialRampToValueAtTime(.0008, t + dur); o.connect(g); g.connect(ENS.out); o.start(t); o.stop(t + dur + .05); }
-  function ensKick(t) { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + .14); g.gain.setValueAtTime(.32, t); g.gain.exponentialRampToValueAtTime(.001, t + .22); o.connect(g); g.connect(ENS.out); o.start(t); o.stop(t + .25); }
-  function ensHat(t) { const n = Math.floor(AC.sampleRate * .04), b = AC.createBuffer(1, n, AC.sampleRate), c = b.getChannelData(0); for (let i = 0; i < n; i++) c[i] = (Math.random() * 2 - 1) * Math.exp(-i / (n * .25)); const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = b; f.type = 'highpass'; f.frequency.value = 6500; g.gain.value = .07; s.connect(f); f.connect(g); g.connect(ENS.out); s.start(t); }
+  /* [P97] 104 BPM、4 小節一輪、C 大調五聲；7 層依 Strudel 稿：種類數 1..7 依序加入 樹→木魚→波波→電報→顫音琴→泡泡→八音盒 */
+  function ensTier(k) { return Math.max(0, Math.min(7, k | 0)); }
+  const NS = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }, nHz = n => { const m = /^([a-g])(\d)$/.exec(n); return m ? 440 * Math.pow(2, (NS[m[1]] + (m[2] - 4) * 12 - 9) / 12) : 0; };
+  function barEv(str) {   // 一小節字串 "[~ c4 ~ c4]" → [{at 0..1, dur, notes[]}]
+    const out = []; let i = 0;
+    function seqInner() { const items = []; while (i < str.length && str[i] !== ']') { const ch = str[i]; if (ch === ' ') { i++; continue; } if (ch === '[') { i++; items.push({ sub: seqInner() }); i++; } else { let j = i; while (j < str.length && str[j] !== ' ' && str[j] !== ']' && str[j] !== '[') j++; items.push({ tok: str.slice(i, j) }); i = j; } } return items; }
+    const walk = (items, t0, w) => { items.forEach((it, n) => { const a0 = t0 + w * n / items.length, ww = w / items.length; if (it.sub) walk(it.sub, a0, ww); else if (it.tok && it.tok !== '~') out.push({ at: a0, dur: ww, notes: it.tok.split(',').map(nHz).filter(Boolean) }); }); };
+    i = 0; if (str[0] === '[') i = 1; walk(seqInner(), 0, 1); return out;
+  }
+  const BP = 60000 / 104, BAR = BP * 4;
+  const ENL = [   // [層, 每小節四拍字串×4]
+    ['tree', ['c2 ~ g2 ~', 'a1 ~ e2 ~', 'f2 ~ c3 ~', 'g1 ~ d2 ~']],
+    ['soil', ['~ c4 ~ c4', '~ c4 ~ c4', '~ d4 ~ d4', '~ c4 g4 ~']],
+    ['grass', ['~ ~ e6 ~', '~ ~ ~ g6', '~ ~ a6 ~', '~ ~ ~ c7']],
+    ['mush', ['~ [g4 a4] ~ ~', '~ ~ [e4 g4] ~', '~ [a4 c5] ~ ~', '~ ~ [g4 e4] ~']],
+    ['petal', ['e5,g5 ~ ~ ~', '~ ~ c5,e5 ~', 'f5,a5 ~ ~ ~', '~ ~ d5,g5 ~']],
+    ['weed', ['~ ~ ~ [g6 a6]', '~ ~ ~ ~', '~ ~ ~ [a6 c7]', '~ ~ ~ ~']],
+    ['cloud', ['g5 ~ a5 g5', 'e5 ~ ~ ~', 'a5 ~ g5 e5', 'd5 ~ c5 ~']]
+  ].map(l => ({ id: l[0], bars: l[1].map(barEv) }));
+  function ensVoice(id, t, f, dur) {
+    const o = AC.createOscillator(), g = AC.createGain(); let type = 'sine', v = .1, d = .2, f0 = f, ff = null;
+    if (id === 'tree') { type = 'triangle'; v = .2; d = .24; ff = 760; } else if (id === 'soil') { type = 'triangle'; v = .08; d = .07; ff = 1300; f = 1000 + (f - 261) * .3; f0 = f; }
+    else if (id === 'grass') { v = .1; d = .08; f0 = f * .5; } else if (id === 'mush') { v = .12; d = .1; } else if (id === 'petal') { v = .07; d = .38; ff = 1900; }
+    else if (id === 'weed') { v = .06; d = .07; f0 = f * .7; } else { v = .11; d = .2; }
+    o.type = type; o.frequency.setValueAtTime(f0, t); if (f0 !== f) o.frequency.exponentialRampToValueAtTime(f, t + .04);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .008); g.gain.exponentialRampToValueAtTime(.0008, t + d);
+    let n = o; if (ff) { const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = ff; o.connect(lp); n = lp; } n.connect(g); g.connect(ENS.out); o.start(t); o.stop(t + d + .05);
+    if (id === 'mush' || id === 'cloud') { const o2 = AC.createOscillator(), g2 = AC.createGain(); o2.type = 'sine'; o2.frequency.value = f * (id === 'cloud' ? 3 : 2); g2.gain.setValueAtTime(v * .3, t); g2.gain.exponentialRampToValueAtTime(.0008, t + d * .6); o2.connect(g2); g2.connect(ENS.out); o2.start(t); o2.stop(t + d); }
+  }
   function ensSched() {
     if (!ENS.tier || !ENS.on || document.hidden) return; let ok = false; try { ok = !!(A.init() && AC); } catch (x) {} if (!ok) return;
     if (AC.state === 'suspended') { try { AC.resume(); } catch (x) {} return; }
     if (!ENS.out) { ENS.out = AC.createGain(); ENS.out.gain.value = .55; ENS.out.connect(AC.destination); }
-    const wall = Date.now(), acNow = AC.currentTime, STEP = 60000 / 104 / 2;   // [P96] 104 BPM 的八分音符；兩小節 16 格；C 大調五聲
-    let k = Math.max(ENS.nextK, Math.ceil(wall / STEP));
-    for (; k * STEP < wall + 450; k++) {
-      const t = acNow + (k * STEP - wall) / 1000; if (t < acNow) continue; const bar = k % 16;
-      if (ENS.tier >= 1 && bar % 2 === 0) ensNote(t, bar % 8 === 0 ? 1180 : 940, .07, .06, 'triangle');   // 小木魚點拍
-      if (ENS.tier >= 2 && [0, 3, 8, 11].includes(bar)) ensNote(t, [130.81, 98, 110, 98][[0, 3, 8, 11].indexOf(bar)], .32, .17, 'triangle');   // Q 彈木頭低音
-      if (ENS.tier >= 3) { if (bar === 0) { ensNote(t, 659.25, 1.1, .05, 'sine'); ensNote(t, 783.99, 1.1, .05, 'sine'); } if (bar === 10) ensNote(t, 1046.5, .3, .05, 'sine'); if (bar === 12) ensNote(t, 880, .3, .05, 'sine'); if (bar === 14) ensNote(t, 783.99, .4, .05, 'sine'); }   // 顫音琴雙音＋八音盒短句
+    const wall = Date.now(), acNow = AC.currentTime; let bi = Math.max(ENS.nextB || 0, Math.floor(wall / BAR));
+    for (; bi * BAR < wall + 600; bi++) {
+      ENL.slice(0, ENS.tier).forEach(L => L.bars[bi % 4].forEach(e => { const t = acNow + (bi * BAR + e.at * BAR - wall) / 1000; if (t < acNow) return; e.notes.forEach(f => ensVoice(L.id, t, f, e.dur * BAR / 1000)); }));
     }
-    ENS.nextK = k;
+    ENS.nextB = bi;
   }
   function ensSync(g) {   // gardenSync 每次輪詢呼叫：層數變高時提醒一次
     if (!g) return; const t = ensTier(g.kinds | 0); ENS.on = U.m === 1 && S.started && !S.ended;
-    if (t !== ENS.tier) { const up = t > ENS.tier; ENS.tier = t; ENS.nextK = 0; if (up && ENS.on) toast(t === 1 ? '小鎮有了節拍' : t === 2 ? '低音加入了，小鎮在合奏' : '和弦鋪滿了小鎮', '', 2600); }
+    if (t !== ENS.tier) { const up = t > ENS.tier; ENS.tier = t; ENS.nextB = 0; if (up && ENS.on) toast(t >= 7 ? '好多聲音疊在一起，小鎮現在好熱鬧喔！' : t === 1 ? '小鎮有了第一個聲音' : '又一個聲音加入合奏了', '', 2600); }
     if (!ENS.tm) ENS.tm = setInterval(ensSched, 120);
   }
   const U = { m: 0 };   // 0 關閉　1 全螢幕＋方向鍵（Unity 管我的 Ping）　2 小窗
